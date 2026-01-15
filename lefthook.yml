@@ -1,0 +1,14 @@
+#
+#   Refer for explanation to following link:
+#   https://lefthook.dfoev/configuration/
+#
+
+min_version: 2.0.8
+
+pre-commit:
+  parallel: false
+  commands:
+    check:
+      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
+      run: npx @biomejs/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
+      stage_fixed: true
