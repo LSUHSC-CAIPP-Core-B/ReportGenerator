@@ -13,7 +13,8 @@
     "enabled": true
   },
   "files": {
-    "ignoreUnknown": false
+    "ignoreUnknown": false,
+    "includes": ["templates/**/*.ejs"]
   },
   "formatter": {
     "enabled": true,
@@ -21,7 +22,7 @@
     "indentWidth": 2,
     "lineEnding": "lf",
     "lineWidth": 100,
-    "useEditorconfig": true
+    "useEditorconfig": false
   },
   "javascript": {
     "formatter": {
@@ -47,6 +48,27 @@
       }
     }
   },
+  "overrides": [
+    {
+      "formatter": {
+        "bracketSpacing": false,
+        "lineEnding": "lf"
+      },
+      "includes": ["**/*.ejs"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off",
+            "noUnusedVariables": "off"
+          },
+          "style": {
+            "useConst": "off",
+            "useImportType": "off"
+          }
+        }
+      }
+    }
+  ],
   "vcs": {
     "clientKind": "git",
     "defaultBranch": "main",

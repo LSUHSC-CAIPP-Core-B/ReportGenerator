@@ -1,0 +1,56 @@
+* {
+    font-family: Tahoma, Verdana, sans-serif;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+.b-navbar {
+    display: block;
+    position: sticky;
+    top: 0;
+
+    color: white;
+    background: #412777;
+}
+
+.b-navbar .navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    box-sizing: content-box;
+    gap: 15rem;
+
+    position: relative;
+    padding: 1.25rem 15px;
+    width: 100%;
+    min-height: 64px;
+
+    flex: 0;
+}
+
+.b-navbar .navigation .nav-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+
+    position: relative;
+    font-weight: 600;
+}
+
+.b-navbar .navigation .nav-group .logo {
+    position: relative;
+    display: inline-block;
+    height: 3rem;
+}
+
+.b-navbar .navigation .nav-group .nav-element {
+    display: block;
+    max-height: 3rem;
+    max-width: 15rem;
+
+    justify-content: left;
+    flex-direction: column;
+}
