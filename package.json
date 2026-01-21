@@ -2,6 +2,7 @@
   "author": "Sebastian Sereno",
   "dependencies": {
     "express": "^5.2.1",
+    "liquidjs": "^10.24.0",
     "url": "^0.11.4"
   },
   "description": "A light weight report generator, using PathAtlas, to create reports based on templates.",

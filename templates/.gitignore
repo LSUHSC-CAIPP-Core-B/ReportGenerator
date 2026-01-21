@@ -1,0 +1,13 @@
+
+# Ignore everything
+*
+
+# Keep the README and gitignore
+!README.md
+!.gitignore
+
+# Keep only builtin templates & assets
+!builtin/
+!builtin/**/*
+!assets/
+!assets/**/*
