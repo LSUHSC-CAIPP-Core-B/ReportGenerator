@@ -7,11 +7,19 @@
 
 .b-navbar {
     display: block;
-    position: sticky;
+    position: fixed;
     top: 0;
+    width: 100vw;
+    height: 5.5rem;
 
     color: white;
     background: #412777;
+
+    user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    -webkit-user-select: none;
 }
 
 .b-navbar .navigation {
@@ -23,9 +31,9 @@
     gap: 15rem;
 
     position: relative;
-    padding: 1.25rem 15px;
+    padding: 1.25rem 0;
     width: 100%;
-    min-height: 64px;
+    height: calc(100% - (1.25rem * 2));
 
     flex: 0;
 }
@@ -34,7 +42,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 2rem;
+
+    height: 100%;
 
     position: relative;
     font-weight: 600;
@@ -43,14 +54,129 @@
 .b-navbar .navigation .nav-group .logo {
     position: relative;
     display: inline-block;
-    height: 3rem;
+    height: 100%;
 }
 
 .b-navbar .navigation .nav-group .nav-element {
-    display: block;
-    max-height: 3rem;
-    max-width: 15rem;
+    display: inline-block;
+    /* max-width: 15rem; */
 
     justify-content: left;
     flex-direction: column;
+}
+
+.b-body {
+    display: flex;
+    flex-direction: row;
+    box-sizing: content-box;
+
+    padding: 1rem;
+    gap: 1rem;
+    margin-top: 5.5rem;
+}
+
+.b-menu {}
+
+.b-menu .menu-container {
+    border: 1px solid black;
+    overflow: hidden;
+    max-width: 30rem;
+}
+
+.b-menu .menu-container .menu-entry {
+    background-color: hsl(260, 51%, 60%);
+    color: white;
+
+    position: relative;
+    min-height: 1rem;
+    min-width: 10rem;
+    display: block;
+
+    transition: all 0.5s linear;
+}
+
+.b-menu .menu-container .menu-entry:not(:first-child)::before {
+    content: '';
+    position: absolute;
+    transform: translate(-50%);
+    display: block;
+    height: 1px;
+    width: calc(200% + 15rem);
+    background-color: black;
+}
+
+.b-menu .menu-container .menu-entry .desc {
+    position: relative;
+    padding: 0.5rem 1rem;
+}
+
+.b-menu .menu-container .menu-entry>.menu-entry {
+    padding-left: 2rem;
+}
+
+.b-menu .menu-container .menu-entry.collapsed>.menu-entry {
+    max-height: 0px;
+    min-height: 0px;
+    overflow: hidden;
+}
+
+.b-menu .menu-container .menu-entry:has(.menu-entry):not(.title) .desc {
+    padding: 0.5rem 2rem 0.5rem 1rem;
+}
+
+.b-menu .menu-container .menu-entry:has(.menu-entry)>.desc::after {
+    content: '';
+    display: inline-block;
+    position: absolute;
+
+    top: 50%;
+    right: 0;
+
+    transform: translate(-50%, -50%) rotate(-45deg);
+    clip-path: polygon(20% 80%, 20% 50%, 50% 50%, 50% 20%, 80% 20%, 80% 80%);
+
+    width: 1rem;
+    height: 1rem;
+    background-color: white;
+}
+
+.b-menu .menu-container .menu-entry:nth-child(2n) {
+    background-color: hsl(260, 51%, 50%);
+}
+
+.b-menu .menu-container .menu-entry:last-child {
+    border-bottom: 0;
+}
+
+.b-menu .menu-container .menu-entry.title {
+    background-color: #412777;
+    text-align: center;
+    font-weight: 700;
+}
+
+.b-content {
+    display: flex;
+    box-sizing: content-box;
+    flex-direction: column;
+
+    flex: 1;
+    gap: 1rem;
+}
+
+.b-container {
+    display: block;
+    width: 100%;
+    background-color: #333;
+    padding: 1rem;
+}
+
+.b-container .draggable {
+    padding: 1rem;
+    background-color: white;
+    border: 1px solid black;
+    cursor: move;
+}
+
+.b-container .draggable.is-dragging {
+    opacity: 50%;
 }
