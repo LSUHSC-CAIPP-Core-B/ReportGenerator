@@ -1,10 +1,13 @@
-{% assign title = "Project Report - " | append: report.title %}
+{% assign title = "PROJECT REPORT - " | append: report.title %}
+
 <navbar class="b-navbar">
     <span class="navigation">
         <span class="nav-group">
-            <img src="/assets/images/logo-full.png" alt="LSUHS Logo" class="logo logo-full">
+            <img src="/assets/images/logo-full.png" alt="LSUHS Logo" class="logo logo-full" draggable="false">
         </span>
         <span class="nav-group">
+            <p class="nav-element">BIOINFORMATICS & MODELING CORE | CAIPP</p>
+            <p class="nav-element">RRID:SCR_024779</p>
             <p class="nav-element">{% echo title %}</p>
         </span>
     </span>
