@@ -14,12 +14,25 @@
 
     color: white;
     background: #412777;
+    box-shadow: 0 -1rem 1rem 1rem #00000000;
+
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+
+    transition: all 1s linear;
 
     user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;
     -o-user-select: none;
     -webkit-user-select: none;
+
+    z-index: 9999;
+}
+
+.b-navbar.scrolled {
+    background: #412777ef;
+    box-shadow: 0 -1rem 0.5rem 1rem black;
 }
 
 .b-navbar .navigation {
@@ -75,7 +88,26 @@
     margin-top: 5.5rem;
 }
 
-.b-menu {}
+.b-menu {
+    position: sticky;
+    display: block;
+    max-height: min-content;
+}
+
+.b-menu .menu-title {
+    background-color: #412777;
+    color: white;
+
+    position: relative;
+    max-height: 10rem;
+    min-height: 1rem;
+    min-width: 10rem;
+    display: block;
+    overflow: hidden;
+
+    text-align: center;
+    font-weight: 700;
+}
 
 .b-menu .menu-container {
     border: 1px solid black;
@@ -88,20 +120,31 @@
     color: white;
 
     position: relative;
+    max-height: 10rem;
     min-height: 1rem;
     min-width: 10rem;
     display: block;
+    overflow: hidden;
 
-    transition: all 0.5s linear;
+    transition: all 0.25s ease;
+}
+
+.b-menu .menu-container .menu-entry.hidden {
+    max-height: 0;
+    min-height: 0;
+}
+
+.b-menu .menu-container .menu-entry.indent {
+    padding-left: calc(2rem * var(--menu-indent, 0.5));
 }
 
 .b-menu .menu-container .menu-entry:not(:first-child)::before {
     content: '';
     position: absolute;
-    transform: translate(-50%);
     display: block;
     height: 1px;
-    width: calc(200% + 15rem);
+    left: 0;
+    width: 100%;
     background-color: black;
 }
 
@@ -110,21 +153,11 @@
     padding: 0.5rem 1rem;
 }
 
-.b-menu .menu-container .menu-entry>.menu-entry {
-    padding-left: 2rem;
+.b-menu .menu-container .menu-entry.collapsable .desc {
+    margin-right: 2rem;
 }
 
-.b-menu .menu-container .menu-entry.collapsed>.menu-entry {
-    max-height: 0px;
-    min-height: 0px;
-    overflow: hidden;
-}
-
-.b-menu .menu-container .menu-entry:has(.menu-entry):not(.title) .desc {
-    padding: 0.5rem 2rem 0.5rem 1rem;
-}
-
-.b-menu .menu-container .menu-entry:has(.menu-entry)>.desc::after {
+.b-menu .menu-container .menu-entry.collapsable::after {
     content: '';
     display: inline-block;
     position: absolute;
@@ -134,10 +167,15 @@
 
     transform: translate(-50%, -50%) rotate(-45deg);
     clip-path: polygon(20% 80%, 20% 50%, 50% 50%, 50% 20%, 80% 20%, 80% 80%);
+    transition: all 0.1s linear;
 
     width: 1rem;
     height: 1rem;
     background-color: white;
+}
+
+.b-menu .menu-container .menu-entry.collapsable.collapsed::after {
+    transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .b-menu .menu-container .menu-entry:nth-child(2n) {
@@ -146,12 +184,6 @@
 
 .b-menu .menu-container .menu-entry:last-child {
     border-bottom: 0;
-}
-
-.b-menu .menu-container .menu-entry.title {
-    background-color: #412777;
-    text-align: center;
-    font-weight: 700;
 }
 
 .b-content {
