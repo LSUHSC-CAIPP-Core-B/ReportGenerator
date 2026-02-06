@@ -3,6 +3,8 @@
   "dependencies": {
     "express": "^5.2.1",
     "liquidjs": "^10.24.0",
+    "mongoose": "^9.1.6",
+    "socket.io": "^4.8.3",
     "url": "^0.11.4"
   },
   "description": "A light weight report generator, using PathAtlas, to create reports based on templates.",
@@ -10,7 +12,7 @@
     "@biomejs/biome": "^2.3.11",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.9",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.2.4",
     "lefthook": "^2.0.15",
     "nodemon": "^3.1.11",
     "ts-loader": "^9.5.4",
