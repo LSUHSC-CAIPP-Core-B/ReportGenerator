@@ -1,0 +1,24 @@
+{% layout "base.html" %}
+{% block content %}
+
+<div class="b-projects">
+    <p class="projects-title">Projects</p>
+    {% for project in projects.getAll %}
+    <div class="project-block">
+        {% capture project_url %}{{ project.title | prepend: "/" | downcase }}{% endcapture %}
+        <pre>{{ project | json }}</pre>
+        <a href="{{ project_url }}" class="project-reference">{{ project.title }}</a>
+        <p class="project-timestamp">{{ project.last_opened | date: "%A, %B %d, %Y %H:%M %P" }}</p>
+        <div class="project-actions">
+            <a href="{{ project_url | append: '/edit' }}" class="project-action" aria-actiontype="edit">
+                <i class="lni lnis-pencil-1"></i>
+            </a>
+            <a href="{{ project_url | append: '/delete' }}" class="project-action" aria-actiontype="edit">
+                <i class="lni lnis-xmark-circle"></i>
+            </a>
+        </div>
+    </div>
+    {% endfor%}
+</div>
+
+{% endblock %}

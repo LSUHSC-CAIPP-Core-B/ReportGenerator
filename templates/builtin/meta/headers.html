@@ -1,13 +1,13 @@
-{% assign title = "Project Report - " | append: report.title %}
-
 <!-- Meta Tag Headers -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="/assets/images/favicon.png" />
 <link rel="stylesheet" href="/assets/css/styles.css">
 
-<meta property="og:title" content="{% echo title %}" />
+<meta property="og:title" content="{{ title | titlecase }}" />
+<title>{{ title | titlecase }}</title>
 
-<title>{% echo title %}</title>
+<link rel="stylesheet" href="https://cdn.lineicons.com/5.1/line/lineicons.css" />
+<link rel="stylesheet" href="https://cdn.lineicons.com/5.1/solid/lineicons-solid.css" />
 
 <script src="/assets/javascript/menu.js" defer></script>

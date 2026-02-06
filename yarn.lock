@@ -1295,6 +1295,11 @@ neo-async@^2.6.2:
   resolved "https://registry.yarnpkg.com/neo-async/-/neo-async-2.6.2.tgz#b4aafb93e3aeb2d8174ca53cf163ab7d7308305f"
   integrity sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==
 
+node-json-db@^2.4.2:
+  version "2.4.2"
+  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-2.4.2.tgz#3be9e0428b67e77f86b30b31c34399950c35197b"
+  integrity sha512-o4EvOlAmQdDqR+HYPTlDPeY5pXwNizf6ceb1K5P+BbLWOHSEX0Mhipg4VcTX+BhlbZ9pkUBHzd3r7CBdt7l5dw==
+
 node-releases@^2.0.27:
   version "2.0.27"
   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.27.tgz#eedca519205cf20f650f61d56b070db111231e4e"
