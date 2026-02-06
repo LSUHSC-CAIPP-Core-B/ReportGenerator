@@ -16,8 +16,8 @@ const {
 const urlObject = new URL('http://example.com');
 const { searchParams } = urlObject;
 
-urlObject.host = DATABASE_URL;
-urlObject.pathname = DATABASE_NAME;
+urlObject.host = DATABASE_URL as string;
+urlObject.pathname = DATABASE_NAME as string;
 
 searchParams.set('appName', APP_NAME);
 
@@ -29,7 +29,7 @@ try {
 // Export needed entries
 export const COMPLETE_DATABASE_URL = urlObject.toString().replace(/^[^:]+/g, dbProtocol || 'mongo');
 
-export const TEMPLATE_DIRECTORY = templateFolder || './templates/';
+export const TEMPLATE_DIRECTORY = templateFolder || 'templates/';
 export const WEBSERVER_PORT = _serverPort;
 
 export { DATABASE_URL, DATABASE_USER, DATABASE_PASS, DATABASE_NAME, APP_NAME };
