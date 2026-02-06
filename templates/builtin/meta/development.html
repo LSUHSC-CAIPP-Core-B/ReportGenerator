@@ -1,1 +1,29 @@
-<script src="/assets/javascript/development.js" defer></script>
+<script id="development">
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('#development').remove();
+
+        var scriptSrc = [
+            'https://cdn.socket.io/4.8.3/socket.io.js',
+            '/assets/javascript/development/draggable.js',
+            '/assets/javascript/development/sockets.js',
+        ];
+
+        // create the development group
+        var group = document.createElement('span');
+        document.body.appendChild(group);
+        group.classList.add('b-development');
+        group.id = 'development';
+
+        // import needed styles
+        var stylesheet = document.createElement('link');
+        document.head.appendChild(stylesheet);
+        stylesheet.href = '/assets/css/development.css'
+        stylesheet.rel = 'stylesheet';
+
+        for (const src of scriptSrc) {
+            var element = document.createElement('script');
+            document.head.appendChild(element);
+            element.src = src;
+        }
+    });
+</script>

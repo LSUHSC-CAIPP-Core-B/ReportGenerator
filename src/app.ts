@@ -1,7 +1,19 @@
+import { createServer } from 'node:http';
 import { WEBSERVER_PORT } from './constants';
-import server from './server';
+import { connectDB } from './database';
+import app from './express';
 
-server.listen(WEBSERVER_PORT, (err) => {
-  if (err) throw err;
-  console.log(`Listening on http://127.0.0.1:${WEBSERVER_PORT}`);
+export const server = createServer(app);
+import './sockets';
+
+server.listen(WEBSERVER_PORT, async () => {
+  try {
+    console.log(`Listening on http://127.0.0.1:${WEBSERVER_PORT}`);
+    await connectDB();
+  } catch (e) {
+    console.error(e);
+    await new Promise((resolve: (value: void) => void, reject) => {
+      server.close((err) => (err) ? reject(err) : resolve());
+    }).then(() => process.exit(1));
+  }
 });
