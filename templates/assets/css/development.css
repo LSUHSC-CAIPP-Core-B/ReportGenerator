@@ -50,3 +50,48 @@
 .b-socket.connected::before {
     background-color: forestgreen;
 }
+
+.b-projects {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 10px;
+    border: 1px solid black;
+    margin: 0 auto;
+
+    user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    -webkit-user-select: none;
+
+    text-align: center;
+}
+
+.b-projects .projects-title {
+    text-transform: uppercase;
+    text-align: center;
+    font-weight: 700;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    background-color: #412777;
+    color: white;
+}
+
+.b-projects .project-block {
+    display: grid;
+    width: 100%;
+    grid-template-columns: auto 20rem min-content;
+    gap: 1rem;
+    padding: 0 10px;
+}
+
+.b-projects .project-block .project-actions {
+    display: inline-block;
+    width: max-content;
+}
+
+.b-projects .project-block .project-reference,
+.b-projects .project-block .project-actions .project-action {
+    color: #412777;
+    text-decoration: none;
+}
