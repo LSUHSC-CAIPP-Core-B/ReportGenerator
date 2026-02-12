@@ -2,7 +2,7 @@ import { JsonDB, Config, DataError } from 'node-json-db';
 import { ProjectError, ProjectInfo, ProjectReport } from './types';
 import { catchErrorTyped } from '../utilities';
 
-const config = new Config("projects.db", true, false, '/');
+const config = new Config("projects.db", true, true, '/');
 
 class ProjectHandler {
     private readonly database: JsonDB;

@@ -1,10 +1,13 @@
-import path from 'node:path';
+import path, { join } from 'node:path';
 import express, { type Request, type Response, static as staticFiles } from 'express';
 import liquid from './liquidjs'
 import projects, { reduceReport } from './projects';
 import { TEMPLATE_DIRECTORY } from './constants';
 import { catchErrorTyped } from './utilities';
 import { ProjectError } from './projects/types';
+import { ProjectModel } from './database/schemas';
+
+import { Types } from 'mongoose';
 
 const app = express();
 
@@ -25,6 +28,9 @@ app.get([ '/', '/:identifier' ], async (req: Request, res: Response) => {
 
   projects.getProject(req.params.identifier as string);
 
+  if (req.path != '/' && project == null)
+    return res.redirect('/');
+
   res.render('builtin/home.html', {
     timestamp: new Date(),
     project, reports
@@ -32,18 +38,55 @@ app.get([ '/', '/:identifier' ], async (req: Request, res: Response) => {
 });
 
 app.delete('/:identifier', async (req: Request, res: Response) => {
-  const { identifier: projectIds } = req.params;
+  const { identifier: projectId } = req.params;
 
   // We should realistically never have an array of projects
-  const projectId = Array.isArray(projectIds) ? projectIds[0] : projectIds;
+  // const projectId = Array.isArray(projectIds) ? projectIds[0] : projectIds;
 
   const [ error ] = await catchErrorTyped(
-    projects.deleteProject(projectId),
+    projects.deleteProject(projectId as string),
     [ ProjectError ]
   );
 
   if (error) res.json({ status: 400, message: error.message });
   else res.json({ status: 200, message: 'OK' });
+});
+
+app.get([ '/database/:project/:file/$', '/database/:project/:file/*relative' ], async (req: Request, res: Response) => {
+  const {
+    project: projectIdStr,
+    file: fileIdStr,
+    relative: relatives
+  } = req.params;
+
+  const projectId = Types.ObjectId.createFromHexString(projectIdStr as string);
+  const fileId = Types.ObjectId.createFromHexString(fileIdStr as string);
+
+  const additional = (relatives != null)
+    ? ( Array.isArray(relatives) ) ? relatives
+    : [ relatives ] : [];
+
+  if (additional.length > 0)
+    additional.unshift('..');
+
+  const lookup = await ProjectModel.aggregate([
+    { $match: { _id: projectId } },
+    { $unwind: '$files' },
+    { $match: { files: fileId } },
+    { $lookup: {
+      from: 'files',
+      as: 'file',
+      foreignField: '_id',
+      localField: 'files'
+    } },
+    { $unwind: '$file' },
+    { $limit: 1 }
+  ]);
+
+  const path = join( lookup[0].file.path, ...additional );
+  const fileLookup = join(lookup[0].absolutePath, path);
+
+  res.sendFile(fileLookup);
 });
 
 export default app;
