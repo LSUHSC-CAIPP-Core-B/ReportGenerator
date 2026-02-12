@@ -199,7 +199,7 @@
     display: block;
     width: 100%;
     background-color: #333;
-    padding: 1rem;
+    /* padding: 1rem; */
 }
 
 .b-container .draggable {
@@ -211,4 +211,9 @@
 
 .b-container .draggable.is-dragging {
     opacity: 50%;
+}
+
+.b-frame {
+    width: 100%;
+    min-height: 50rem;
 }
