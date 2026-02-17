@@ -1,0 +1,14 @@
+.container {}
+
+.container .row {
+    display: grid;
+}
+
+.container .row .col-md-6 {}
+
+
+.container .row .col-md-6:not(:first-child) .glimma-plot .tooltip {
+    display: inline-block;
+    margin-top: -39.1rem;
+    /* top: 0px !important; */
+}

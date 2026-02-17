@@ -8,13 +8,14 @@ import { ProjectError } from './projects/types';
 import { ProjectModel } from './database/schemas';
 
 import { Types } from 'mongoose';
+import { createReadStream, existsSync, statSync } from 'node:fs';
 
 const app = express();
 
 app.engine('html', liquid.express());
 app.set('views', path.resolve(TEMPLATE_DIRECTORY));
 app.set('view engine', 'liquid');
-app.use('/assets', staticFiles(`${TEMPLATE_DIRECTORY}/assets`));
+app.use('/assets', staticFiles(`${TEMPLATE_DIRECTORY}/assets`, { cacheControl: false }));
 
 app.get([ '/', '/:identifier' ], async (req: Request, res: Response) => {
   const { identifier: projectIds } = req.params;
@@ -86,7 +87,34 @@ app.get([ '/database/:project/:file/$', '/database/:project/:file/*relative' ], 
   const path = join( lookup[0].file.path, ...additional );
   const fileLookup = join(lookup[0].absolutePath, path);
 
-  res.sendFile(fileLookup);
+  if (fileLookup.endsWith('glimma.min.css')) {
+    const injectedCSS = join(TEMPLATE_DIRECTORY, 'assets', 'css', 'iframe.css');
+
+    const status = existsSync(fileLookup) ? 200 : 404;
+    const statSize = statSync(fileLookup).size + statSync(injectedCSS).size;
+
+    res.writeHead(status, {
+      'Content-Type': 'text/css',
+      'Content-Length': statSize
+    });
+
+
+    // Create first read stream
+    const stream1 = createReadStream(fileLookup);
+
+    // Pipe first stream, do not end response yet
+    stream1.pipe(res, { end: false });
+
+    // When first stream ends, start second
+    stream1.on('end', () => {
+      const stream2 = createReadStream(injectedCSS);
+      // Pipe second stream and end response
+      stream2.pipe(res);
+    });
+
+    // Handle errors
+    stream1.on('error', (err) => res.status(500).send(err.message));
+  } else res.sendFile(fileLookup);
 });
 
 export default app;
