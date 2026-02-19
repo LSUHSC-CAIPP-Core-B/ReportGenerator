@@ -11,6 +11,8 @@
   "description": "A light weight report generator, using PathAtlas, to create reports based on templates.",
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.9",
     "dotenv": "^17.2.4",
