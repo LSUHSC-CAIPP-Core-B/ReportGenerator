@@ -1,0 +1,40 @@
+name: Commitlint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+  push:
+    branches:
+      - '**'
+
+# 
+# If you want to enforce conventional commits (on your client)
+# use the following git hook:
+# 
+# https://github.com/tapsellorg/conventional-commits-git-hook
+# 
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      - name: Lint commits
+        run: |
+          BASE=${{ github.event.pull_request.base.ref }}
+          echo "Base branch: $BASE"
+        
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            npx commitlint --from origin/$BASE --to HEAD
+          elif [ "${{ github.ref_name }}" = "$BASE" ]; then
+            npx commitlint --from HEAD~1 --to HEAD
+          fi
