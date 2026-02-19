@@ -16,12 +16,14 @@
     {% for group in project.groups %}
     <div class="b-container">
         {% for element in group.elements %}
-        <iframe class="draggable b-frame" draggable="true" src="database/{{project.project}}/{{element.file}}/$"
-            title="Description of embedded content">
-            <p>Your browser does not support iframes. You can view the content <a
-                    href="database/{{project.project}}/{{element.file}}/$">here</a>.
-            </p>
-        </iframe>
+
+        {% case element.type %}
+        {% when "html", "pdf" %}
+        {% include "partial/types/frame.html" %}
+        {% when "png", "svg", "jpeg", "jpg", "tiff", "tif" %}
+        {% include "partial/types/image.html" %}
+        {% endcase %}
+
         {% endfor %}
         <p class="draggable" draggable="true">1</p>
     </div>
