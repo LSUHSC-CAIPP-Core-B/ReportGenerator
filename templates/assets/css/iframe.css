@@ -1,14 +1,52 @@
-.container {}
-
-.container .row {
-    display: grid;
+.container {
+    width: 100vw;
+    overflow: hidden;
 }
 
-.container .row .col-md-6 {}
+.container .row {
+    width: fit-content;
+    display: grid;
+    margin: auto;
+}
 
+.container .row:has(.col-md-6) {
+    grid-template-columns: auto auto;
+}
 
-.container .row .col-md-6:not(:first-child) .glimma-plot .tooltip {
-    display: inline-block;
-    margin-top: -39.1rem;
-    /* top: 0px !important; */
+@media screen and (max-width: 1010px) {
+    .container .row:has(.col-md-6) {
+        grid-template-columns: auto;
+    }
+
+    .container .row .col-md-6:not(:first-child) .glimma-plot .tooltip {
+        display: inline-block;
+        margin-top: -88%;
+    }
+}
+
+.container .row:has(.col-md-6)::before,
+.container .row:has(.col-md-6)::after {
+    content: none !important;
+}
+
+.container .row .col-md-6 {
+    width: 100%;
+}
+
+.container .row .dataTables_wrapper {
+    overflow: hidden;
+}
+
+.container .row .dataTables_wrapper .dataTables_scroll {
+    display: grid;
+    grid-template-columns: auto-fill;
+    overflow: scroll;
+}
+
+.container .row .dataTables_wrapper .dataTables_scroll .dataTables_scrollHead {
+    width: max-content !important;
+}
+
+.container .row .dataTables_wrapper .dataTables_scroll .dataTables_scrollBody table {
+    max-width: 1050px;
 }
