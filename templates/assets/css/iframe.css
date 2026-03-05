@@ -1,3 +1,8 @@
+/* Everything below this description was */
+/* injected for easier manipulation of plots */
+/* without having to rewrite the frontend. */
+/* You're welcome! - @Leialoha */
+
 .container {
     width: 100vw;
     overflow: hidden;
@@ -7,13 +12,14 @@
     width: fit-content;
     display: grid;
     margin: auto;
+    gap: 3rem;
 }
 
 .container .row:has(.col-md-6) {
     grid-template-columns: auto auto;
 }
 
-@media screen and (max-width: 1010px) {
+@media screen and (max-width: 1060px) {
     .container .row:has(.col-md-6) {
         grid-template-columns: auto;
     }
@@ -31,6 +37,7 @@
 
 .container .row .col-md-6 {
     width: 100%;
+    padding: 0;
 }
 
 .container .row .dataTables_wrapper {

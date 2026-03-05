@@ -15,7 +15,7 @@ const app = express();
 app.engine('html', liquid.express());
 app.set('views', path.resolve(TEMPLATE_DIRECTORY));
 app.set('view engine', 'liquid');
-app.use('/assets', staticFiles(`${TEMPLATE_DIRECTORY}/assets`, { cacheControl: false }));
+app.use('/assets', staticFiles(`${TEMPLATE_DIRECTORY}/assets`));
 
 app.get([ '/', '/:identifier' ], async (req: Request, res: Response) => {
   const { identifier: projectIds } = req.params;

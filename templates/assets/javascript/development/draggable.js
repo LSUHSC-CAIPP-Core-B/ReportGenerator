@@ -12,6 +12,7 @@ function dragStartListener(event) {
     if (!classes.contains('draggable')) return;
 
     classes.add('is-dragging');
+    document.body.classList.add('mask-dragging');
 }
 
 /**
@@ -27,6 +28,7 @@ function dragEndListener(event) {
     if (!classes.contains('draggable')) return;
 
     classes.remove('is-dragging');
+    document.body.classList.remove('mask-dragging');
 }
 
 /**

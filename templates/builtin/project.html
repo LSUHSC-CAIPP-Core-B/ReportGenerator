@@ -11,21 +11,34 @@
     </div>
 </div>
 <div class="b-content">
-    <pre>{{ project | json }}</pre>
 
     {% for group in project.groups %}
     <div class="b-container">
         {% for element in group.elements %}
 
+        {% if element.file == null %}
+
         {% case element.type %}
-        {% when "html", "pdf" %}
-        {% include "partial/types/frame.html" %}
-        {% when "png", "svg", "jpeg", "jpg", "tiff", "tif" %}
-        {% include "partial/types/image.html" %}
+        {% when "description" %}
+        {% include "partial/section/description.html" %}
         {% endcase %}
 
+        {% else %}
+
+        {% case element.type %}
+        {% when "html", "pdf" %}
+        {% include "partial/section/types/frame.html" %}
+        {% when "png", "svg", "jpeg", "jpg", "tiff", "tif" %}
+        {% include "partial/section/types/image.html" %}
+        {% when "csv" %}
+        {% include "partial/section/types/table.html" %}
+        {% else %}
+        <p>{{ element | json }}</p>
+        {% endcase %}
+
+        {% endif %}
+
         {% endfor %}
-        <p class="draggable" draggable="true">1</p>
     </div>
     {% endfor %}
 </div>
