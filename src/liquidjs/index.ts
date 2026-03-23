@@ -2,6 +2,7 @@ import { Liquid } from "liquidjs";
 import { TEMPLATE_DIRECTORY } from "../constants";
 
 import titleCasePlugin from './plugins/titlecase';
+import randomIdPlugin from './plugins/randomid';
 
 const liquid = new Liquid({
   root: [
@@ -14,5 +15,6 @@ const liquid = new Liquid({
 });
 
 liquid.plugin(titleCasePlugin);
+liquid.plugin(randomIdPlugin);
 
 export default liquid;
