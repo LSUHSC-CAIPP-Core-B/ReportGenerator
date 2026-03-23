@@ -25,6 +25,8 @@
 
         {% else %}
 
+        {% capture identifier %}{% randomid %}{% endcapture %}
+
         {% case element.type %}
         {% when "html", "pdf" %}
         {% include "partial/section/types/frame.html" %}
@@ -41,4 +43,5 @@
         {% endfor %}
     </div>
     {% endfor %}
+
 </div>
