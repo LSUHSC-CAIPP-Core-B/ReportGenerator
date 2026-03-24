@@ -54,13 +54,24 @@ function loadCSVTable(data) {
 class TableHandler {
     /**
      * @param {HTMLElement} element 
-     * @param {Object[][]} data 
+     * @param {(string | number)[][]} data 
      */
     constructor(element, data) {
-        this.data = data.slice(1);
+        const orderStr = element.attributes.getNamedItem("aria-column-order")?.value;
+        const indexRows = element.attributes.getNamedItem("aria-row-index") != null;
+
+        const order = orderStr?.split(',')?.map(o => Number.parseInt(o));
+        let mapped_data = this.#reorderData(data, order);
+        if (indexRows) mapped_data = this.#indexData(mapped_data);
+
+        this.data = mapped_data.slice(1);
+        this.initial_data = this.data;
+
+        let headers = mapped_data[0];
+        if (indexRows) headers[0] = 'INDEX';
 
         this.#createActions(element)
-            .#makeHeaders(data[0])
+            .#makeHeaders(headers)
             .maxRows(10);
     }
 
@@ -145,8 +156,59 @@ class TableHandler {
      * @returns {TableHandler}
      */
     #searchEvent(event) {
+        /** @type {HTMLInputElement} */
+        const element = event.target;
+        const searchStr = element.value;
 
-        return this;
+        const escaped = RegExp.escape(searchStr.toLowerCase());
+        const search = new RegExp(escaped, 'gi');
+
+        this.data = this.initial_data.filter(row => {
+            return row.map(data => data.toString().match(search))
+                .reduce((a, b) => a || b, false);
+        });
+
+        this.max_pages = Math.floor(this.data.length / this.rows);
+
+        // Reload the page
+        return this.load();
+    }
+
+    /**
+     * @param {Event} event 
+     * @returns {TableHandler}
+     */
+    #sort(event) {
+        /** @type {HTMLElement} */
+        let element = event.target;
+        const parent = element.parentElement;
+
+        const parentNode = parent.getAttributeNode('aria-column')
+
+        const attr = parentNode || element.getAttributeNode('aria-column');
+
+        const target = (!parentNode) ? element : parent;
+        [...target.parentElement.children].forEach(child => {
+            child.classList.toggle('sort-desc', false);
+            child.classList.toggle('sort-asce', false);
+        });
+
+        // sort-des
+
+        this.prev_column_sort = this.column_sort;
+        this.column_sort = Number.parseInt(attr?.value || '0');
+        this.sort_direction = (this.prev_column_sort == this.column_sort) ? -this.sort_direction : 1;
+
+        target.classList.toggle('sort-desc', this.sort_direction == 1);
+        target.classList.toggle('sort-asce', this.sort_direction == -1);
+
+        this.data = this.data.sort((r1, r2) => 
+            (r1[this.column_sort] < r2[this.column_sort]) ? -this.sort_direction
+                : (r1[this.column_sort] > r2[this.column_sort]) ? this.sort_direction : 0
+        );
+
+        // Reload the page
+        return this.load(this.page);
     }
 
     /**
@@ -182,7 +244,7 @@ class TableHandler {
         SEARCH_LABEL.appendChild(SEARCH);
         SEARCH_LABEL.classList.add('table-search');
 
-        SEARCH.addEventListener('change', (event) => this.#searchEvent(event));
+        SEARCH.addEventListener('input', (event) => this.#searchEvent(event));
 
         CONTROLS.appendChild(FAST_BACKWARDS);
         CONTROLS.appendChild(BACK);
@@ -234,9 +296,34 @@ class TableHandler {
         this.element.appendChild(header);
 
         headers.map(this.#createEntry, this)
-            .forEach(header.appendChild, header);
+            .forEach((column, index) => {
+                const attr = document.createAttribute('aria-column');
+                attr.value = `${index}`;
+                column.attributes.setNamedItem(attr);
+
+                column.addEventListener('click', (event) => this.#sort(event));
+                header.appendChild(column);
+            }, header);
 
         return this;
+    }
+
+    /**
+     * @param {(string | number)[][]} data
+     * @param {number[] | undefined} order
+     * @returns {(string | number)[][]}
+     */
+    #reorderData(data, order) {
+        if (!order) return data;
+        return data.map(row => order.map(o => row[o]));
+    }
+
+    /**
+     * @param {(string | number)[][]} data
+     * @returns {(string | number)[][]}
+     */
+    #indexData(data) {
+        return data.map((row, i) => [i, ...row]);
     }
 
 }

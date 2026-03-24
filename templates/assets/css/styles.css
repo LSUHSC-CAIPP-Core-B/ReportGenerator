@@ -272,15 +272,15 @@
 }
 
 .b-table {
-    padding: 1rem;
     overflow: hidden;
-    margin: auto;
     font-size: 0.8rem;
 }
 
 .b-table div[aria-table] {
     display: flex;
     flex-direction: column;
+    margin: 1rem auto;
+    max-width: 1100px;
 
     gap: 0.5rem;
 }
@@ -320,6 +320,40 @@
         text-align: center;
         font-weight: 700;
     }
+
+    &.header .table-entry {
+        display: flex;
+        gap: 0.5rem;
+
+        &::after {
+            content: '';
+            margin: auto;
+            height: 8px;
+
+            border: 0px solid #acacac;
+            border-width: 0 3px 3px 0;
+            display: inline-block;
+            aspect-ratio: 1/1;
+
+            transform: rotate(-45deg);
+            -webkit-transform: rotate(-45deg);
+
+            transition: all 0.25s linear;
+        }
+
+        &.sort-desc::after {
+            transform: rotate(45deg);
+            -webkit-transform: rotate(45deg);
+            border-color: black;
+        }
+
+        &.sort-asce::after {
+            transform: rotate(-135deg);
+            -webkit-transform: rotate(-135deg);
+            border-color: black;
+        }
+    }
+
 }
 
 .b-table .table-entry {
