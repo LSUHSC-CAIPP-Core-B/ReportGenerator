@@ -1,5 +1,13 @@
 <span class="draggable b-table" draggable="true">
+
+    {% capture tags %}
+
+    {% attribute name: "aria-row-index" value: element.extras.index %}
+    {% attribute name: "aria-column-order" value: element.extras.column_order %}
+
+    {% endcapture %}
+
     <div aria-table="database/{{project.project}}/{{element.file}}/$" aria-filetype="{{element.type}}"
-        aria-identifier="{{ identifier }}">
+        aria-identifier="{{ identifier }}" {{tags}}>
     </div>
 </span>
