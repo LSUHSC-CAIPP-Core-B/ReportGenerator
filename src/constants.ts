@@ -29,7 +29,7 @@ try {
 // Export needed entries
 export const COMPLETE_DATABASE_URL = urlObject.toString().replace(/^[^:]+/g, dbProtocol || 'mongo');
 
-export const TEMPLATE_DIRECTORY = templateFolder || 'templates/';
+export const TEMPLATE_DIRECTORY = templateFolder || 'templates';
 export const WEBSERVER_PORT = _serverPort;
 
 export { DATABASE_URL, DATABASE_USER, DATABASE_PASS, DATABASE_NAME, APP_NAME };

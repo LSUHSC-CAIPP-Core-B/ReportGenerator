@@ -1,6 +1,11 @@
-<span class="draggable b-image" draggable="true">
-    <img class="image" src="database/{{project.project}}/{{element.file}}/$" />
-    {% if element.description != null %}
-    <p class="image-desc">{{ element.description }}</p>
-    {% endif %}
-</span>
+{% component "element.html", hascontents, class: 'b-image' %}
+  {% element "img", self %}
+    {%- attribute name: "class", value: "image" -%}
+    {% assign url = "database/" | append: project.project | append: "/" | append: element.file | append: "/$" %}
+    {%- attribute name: "src", value: url -%}
+  {% endelement %}
+  {% element "p", if element.description != null %}
+    {%- attribute name: "class", value: "image-desc" -%}
+    {{ element.description }}
+  {%- endelement -%}
+{% endcomponent -%}

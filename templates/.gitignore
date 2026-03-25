@@ -11,3 +11,5 @@
 !builtin/**/*
 !assets/
 !assets/**/*
+!components/
+!components/**/*
