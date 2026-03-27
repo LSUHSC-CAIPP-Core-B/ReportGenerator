@@ -1,3 +1,6 @@
-<div class="draggable b-description" draggable="true">
-    <p class="description-content">{{ element.description }}</p>
-</div>
+{%- component "element.html", hascontents %}
+  {% element "p" -%}
+    {%- attribute name: "class", value: "b-description" -%}
+    {{ element.description }}
+  {%- endelement -%}
+{%- endcomponent -%}

@@ -1,5 +1,6 @@
-{%- component "element.html", hascontents, class: 'b-table' %}
+{%- component "element.html", hascontents %}
   {% element "div" -%}
+    {%- attribute name: "class", value: "b-table" -%}
     {% assign url = "database/" | append: project.project | append: "/" | append: element.file | append: "/$" %}
     {%- attribute name: "aria-table", value: url -%}
     {%- attribute name: "aria-filetype", value: element.type -%}

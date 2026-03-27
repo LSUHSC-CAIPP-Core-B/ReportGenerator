@@ -1,6 +1,6 @@
-{%- component "element.html", hascontents, class: 'b-frame' %}
+{%- component "element.html", hascontents %}
   {% element "iframe" %}
-    {%- attribute name: "class", value: "frame" -%}
+    {%- attribute name: "class", value: "b-frame" -%}
     {% assign url = "database/" | append: project.project | append: "/" | append: element.file | append: "/$" %}
     {%- attribute name: "src", value: url -%}
     <p>Your browser does not support iframes. You can view the content <a href="{{ url }}">here</a>.</p>

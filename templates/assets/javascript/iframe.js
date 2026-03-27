@@ -28,7 +28,7 @@ const p$ = new ResizeObserver((entries, observer) => {
 
 
 /** @type {HTMLIFrameElement[]} */
-const frameElements = [...document.querySelectorAll(".b-frame iframe.frame")];
+const frameElements = [...document.querySelectorAll("iframe.b-frame")];
 
 for (const frameElement of frameElements) {
     p$.observe(frameElement, { box: "content-box" });
