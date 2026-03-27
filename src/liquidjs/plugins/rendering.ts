@@ -1,5 +1,5 @@
 import { Context, Emitter, evalToken, Liquid, Parser, Tag, TagToken, TokenKind, TopLevelToken, Value } from 'liquidjs';
-import { TagImplOptions } from 'liquidjs/dist/template';
+import { TagImplOptions, Template } from 'liquidjs/dist/template';
 
 export default function (this: Liquid, L: typeof Liquid) {
   this.registerTag('component', componentTagOptions);
@@ -8,58 +8,33 @@ export default function (this: Liquid, L: typeof Liquid) {
   this.registerTag('element', elementTagOptions);
 }
 
-
-
 const componentTagOptions: TagImplOptions = {
   parse(this: Tag & TagImplOptions, tagToken: TagToken, remainingTokens: TopLevelToken[]) {
-    const [namePart, ...rest] = tagToken.args.split(/,\s*/g);
+    const [namePart, ...rest] = tagToken.args.split(/\s*,\s*/g);
 
     this.templateName = namePart.trim().replace(/^["']|["']$/g, '');
 
-    // Parse props
-    this.props = {};
-    this.hasSlot = false;
+    // Parse attributes
+    this.attributes = parseAttributes(rest);
 
-    rest.forEach(pair => {
-      const [key, value] = pair.split(':').map(s => s.trim());
-      if (key && value) this.props[key] = value;
-      else if (key == 'hascontents') this.hasSlot = true;
-    });
-
-    // Handle block content (slot)
-    const tokens: TopLevelToken[] = [];
-    if (this.hasSlot) {
-      let token: TopLevelToken | undefined;
-      while ((token = remainingTokens.shift())) {
-        if (token instanceof TagToken && token.name === 'endcomponent') break;
-        tokens.push(token);
-      }
-    }
-
-    this.templates = (this.liquid.parser ?? this.parser).parseTokens(tokens);
+    this.templates = (!('hascontents' in this.attributes)) ? []
+      : parseTemplates(this, remainingTokens, 'endcomponent');
   },
   render: function*(this: Tag & TagImplOptions, ctx: Context, emitter: Emitter, hash: Record<string, any>) {
-    if ('if' in this.props) {
-      const condition = this.liquid.evalValueSync(this.props['if'], ctx);
-      if (!condition) return '';
-      delete this.props['if'];
-    }
+    if (!evalRenderCondition(this, ctx)) return '';
 
-    // Evaluate props
-    const evaluatedProps: Record<string, any> = {};
+    // Evaluate attributes (for the template root)
+    let properties = evalAttributes(this, ctx, this.attributes);
 
-    for (const [key, value] of typedEntries<string>(this.props)) {
-      evaluatedProps[key] = this.liquid.evalValueSync(value, ctx);
-    }
-
-    // Render slot content
-    let content: any;
-    if (this.templates.length > 0) {
-      content = this.liquid.renderer.renderTemplates(this.templates, ctx);
-    }
+    // Reset attribute register
+    const prevRegister: [string, any][] = ctx.saveRegister("attrs");
+    ctx.setRegister("attrs", {});
+    const content: string = yield renderTemplates(this, ctx, this.templates);
+    const attributes = ctx.getRegister("attrs") ?? {};
+    ctx.restoreRegister(prevRegister);
 
     // Create isolated scope
-    const scope = {...evaluatedProps, content};
+    const scope = {...properties, content, attributes};
 
     // Render component file with scoped data
     return this.liquid.renderFileSync(`components/${this.templateName}`, scope);
@@ -68,38 +43,19 @@ const componentTagOptions: TagImplOptions = {
 
 const attributeTagOptions: TagImplOptions = {
   parse(this: Tag & TagImplOptions, tagToken: TagToken, remainingTokens: TopLevelToken[]) {
-    this.props = {};
-
-    tagToken.args.split(/,\s*/).forEach(pair => {
-      const [key, value] = pair.split(':').map(s => s.trim());
-      if (key && value) this.props[key] = value;
-    });
+    this.attribute = parseAttributes(tagToken.args.split(/\s*,\s*/));
   },
   render: function*(this: Tag & TagImplOptions, ctx: Context, emitter: Emitter, hash: Record<string, any>) {
-    if ('if' in this.props) {
-      const condition = this.liquid.evalValueSync(this.props['if'], ctx);
-      if (!condition) return '';
-    }
+    if (!evalRenderCondition(this, ctx)) return '';
 
-    const name: string = this.props.name
-      ? yield this.liquid.evalValueSync(this.props.name, ctx) : null;
-    const value: string | boolean = this.props.value
-      ? yield this.liquid.evalValueSync(this.props.value, ctx) : null;
+    const name = evalValue<string>(this, ctx, this.attribute.name);
+    const value = evalValue<string | boolean>(this, ctx, this.attribute.value) ?? '';
 
     if (!name) return "";
     
-    const attrs = ctx.getRegister("attrs") || {};
-    
-    const hasValue = this.props.value !== undefined;
-    const exists = (attrs[name] !== undefined);
-    const genericBool = (attrs[name] === true || attrs[name] === false);
-    const genericSet = (value === "" || !hasValue);
-
-    if (exists && genericBool) attrs[name] = (attrs[name] || value) != false;
-    else if (exists && !genericSet) attrs[name] = `${attrs[name]} ${value}`;
-    else attrs[name] = (genericSet) ? '' : value;
-
-    ctx.setRegister("attrs", attrs);
+    const attributes = ctx.getRegister("attrs") || {};
+    resolveAttribute(attributes, { name, value }, this.attribute);
+    ctx.setRegister("attrs", attributes);
 
     return '';
   }
@@ -107,62 +63,43 @@ const attributeTagOptions: TagImplOptions = {
 
 const elementTagOptions: TagImplOptions = {
   parse(this: Tag & TagImplOptions, tagToken: TagToken, remainingTokens: TopLevelToken[]) {
-    const [tagNamePart, ...rest] = tagToken.args.split(/,\s*/);
+    const [elementName, ...rest] = tagToken.args.split(/\s*,\s*/);
+    this.elementName = new Value(elementName.trim(), this.liquid);
 
-    this.tagName = new Value(tagNamePart.trim(), this.liquid);
-
-    this.props = {};
-    this.self = false;
-
-    rest.forEach(pair => {
-      const [key, value] = pair.split(':').map(s => s.trim());
-      if (key && value) this.props[key] = value;
-      else if (key == 'self') this.self = true;
-    });
-
+    this.attributes = parseAttributes(rest);
+  
     // Handle block content (slot)
-    const tokens: TopLevelToken[] = [];
-    let token: TopLevelToken | undefined;
-    while ((token = remainingTokens.shift())) {
-      if (token instanceof TagToken && token.name === 'endelement') break;
-      tokens.push(token);
-    }
-
-    this.templates = (this.liquid.parser ?? this.parser).parseTokens(tokens);
+    this.templates = parseTemplates(this, remainingTokens, 'endelement');
   },
   render: function*(this: Tag & TagImplOptions, ctx: Context, emitter: Emitter, hash: Record<string, any>) {
-    const tagName: string = yield this.tagName.value(ctx);
-    if (!tagName) return '';
+    let name: string;
+    if (!evalRenderCondition(this, ctx)) return '';
+    if (!(name = yield this.elementName.value(ctx))) return '';
 
-    if ('if' in this.props) {
-      const condition = this.liquid.evalValueSync(this.props['if'], ctx);
-      if (!condition) return '';
-      delete this.props['if'];
-    }
+    const self = ('nocontent' in this.attributes);
+    if (self) delete this.attributes['nocontent'];
 
-    // Evaluate props
-    let attrs: Record<string, any> = {};
+    // Evaluate attributes
+    let attributes = evalAttributes(this, ctx, this.attributes);
 
-    for (const [key, value] of typedEntries<string>(this.props)) {
-      const evaluated: string | boolean = this.liquid.evalValueSync(value, ctx);
-      attrs[key] = (evaluated === true || evaluated === "") ? true : evaluated;
+    // Add additional attributes
+    if (attributes['attributes']) {
+      appendAttributes(attributes, attributes['attributes']);
+      delete attributes['attributes'];
     }
 
     // Reset attribute register
-    let attrArr: string[] = [];
-    ctx.setRegister("attrs", attrs);
-    const children: string = yield this.liquid.renderer.renderTemplates(this.templates, ctx);
-    attrs = ctx.getRegister("attrs") || {};
+    const prevRegister: [string, any][] = ctx.saveRegister("attrs");
+    ctx.setRegister("attrs", attributes);
+    const content: string = yield renderTemplates(this, ctx, this.templates);
+    attributes = ctx.getRegister("attrs") || {};
+    ctx.restoreRegister(prevRegister);
 
-    for (const [key, value] of typedEntries<string | boolean>(attrs)) {
-      const evaluated: string | boolean = value;
-      if (evaluated === false || evaluated === null) continue;
-      else if (evaluated === '') attrArr.push(` ${key}`);
-      else attrArr.push(` ${key}="${evaluated}"`);
-    }
+    let htmlTags = parseArgs(attributes)
+      .join('');
 
-    return (this.self) ? `<${tagName}${attrArr.join('')} />`
-      : `<${tagName}${attrArr.join('')}>${children}</${tagName}>`;
+    return (self) ? `<${name}${htmlTags} />`
+      : `<${name}${htmlTags}>${content}</${name}>`;
   }
 }
 
@@ -174,3 +111,94 @@ const elementTagOptions: TagImplOptions = {
 function typedEntries<T>(obj: Record<string, T>) {
   return Object.entries(obj) as [string, T][];
 }
+
+function evalRenderCondition(tag: Tag & TagImplOptions, ctx: Context) {
+  const { attributes, liquid } = tag;
+
+  if (attributes && 'if' in attributes) {
+    const condition = liquid.evalValueSync(attributes['if'], ctx);
+    delete attributes['if'];
+    return (condition);
+  }
+
+  return true;
+}
+
+function parseTemplates(tag: Tag & TagImplOptions, remainingTokens: TopLevelToken[], endToken: string): Template[] {
+  const { liquid, parser } = tag;
+
+  // Handle block content (slot)
+  const tokens: TopLevelToken[] = [];
+  let token: TopLevelToken | undefined;
+  while ((token = remainingTokens.shift())) {
+    if (token instanceof TagToken && token.name === endToken) break;
+    tokens.push(token);
+  }
+
+  return (liquid.parser ?? parser).parseTokens(tokens);
+}
+
+function parseAttributes(attributes: string[]): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  attributes.forEach(pair => {
+    const [key, value] = pair.split(':').map(s => s.trim());
+    if (key) result[key] = (value ?? '');
+  });
+
+  return result;
+}
+
+function parseArgs(attributes: Record<string, any>) {
+  const attrArr: string[] = [];
+
+  for (const [key, value] of typedEntries<string | boolean>(attributes)) {
+    const evaluated: string | boolean = value;
+    if (evaluated === false || evaluated === null) continue;
+    else if (evaluated === '') attrArr.push(` ${key}`);
+    else attrArr.push(` ${key}="${evaluated}"`);
+  }
+
+  return attrArr;
+}
+
+function evalAttributes(tag: Tag & TagImplOptions, ctx: Context, attributes: Record<string, string>): Record<string, any> {
+  let result: Record<string, any> = {};
+
+  for (const [key, value] of typedEntries<string>(attributes))
+    result[key] = evalValue<string | boolean>(tag, ctx, value) ?? '';
+
+  return result;
+}
+
+function evalValue<T>(tag: Tag & TagImplOptions, ctx: Context, value: string): T | null {
+  const { liquid } = tag;
+  if (!value) return null;
+  return liquid.evalValueSync(value, ctx);
+}
+
+function renderTemplates(tag: Tag & TagImplOptions, ctx: Context, templates: Template[]) {
+  const { liquid } = tag;
+  if (templates && templates.length > 0)
+    return liquid.renderer.renderTemplates(templates, ctx);
+  return null;
+}
+
+function appendAttributes(attributes: Record<string, any>, additional: Record<string, any>) {
+  for (const [key, value] of typedEntries<string>(additional))
+    resolveAttribute(attributes, { name: key, value }, additional);
+}
+
+function resolveAttribute(attributes: Record<string, any>, evaluated: { name: string; value: string | boolean; }, attribute: Record<string, any>) {
+  const { name, value } = evaluated;
+
+  const hasValue = attribute.value !== undefined;
+  const exists = (attributes[name] !== undefined);
+  const genericBool = (attributes[name] === true || attributes[name] === false);
+  const genericSet = (value === "" || !hasValue);
+
+  if (exists && genericBool) attributes[name] = (attributes[name] || value) != false;
+  else if (exists && !genericSet) attributes[name] = `${attributes[name]} ${value}`;
+  else attributes[name] = value;
+}
+

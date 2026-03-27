@@ -1,6 +1,6 @@
-{%- element "div" -%}
+{%- element "div", attributes: attributes -%}
   {%- assign environment = "NODE_ENV" | env: "prod" -%}
-  {%- attribute name: 'class', value: class -%}
+  {%- attribute name: 'class', value: 'b-element' -%}
   {%- attribute name: 'class', value: 'draggable', if: environment == "dev" -%}
   {%- attribute name: 'draggable', value: true, if: environment == "dev" -%}
   {{ content }}

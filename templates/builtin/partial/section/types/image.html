@@ -1,11 +1,11 @@
-{% component "element.html", hascontents, class: 'b-image' %}
-  {% element "img", self %}
-    {%- attribute name: "class", value: "image" -%}
+{% component "element.html", hascontents %}
+  {% element "img", nocontent %}
+    {%- attribute name: "class", value: "b-image" -%}
     {% assign url = "database/" | append: project.project | append: "/" | append: element.file | append: "/$" %}
     {%- attribute name: "src", value: url -%}
   {% endelement %}
-  {% element "p", if element.description != null %}
-    {%- attribute name: "class", value: "image-desc" -%}
+  {% element "p", if: element.description != null %}
+    {%- attribute name: "class", value: "b-description" -%}
     {{ element.description }}
   {%- endelement -%}
 {% endcomponent -%}
