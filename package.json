@@ -6,6 +6,7 @@
     "mongoose": "^9.1.6",
     "node-json-db": "^2.4.2",
     "socket.io": "^4.8.3",
+    "ua-parser-js": "^2.0.9",
     "url": "^0.11.4"
   },
   "description": "A light weight report generator, using PathAtlas, to create reports based on templates.",

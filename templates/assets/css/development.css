@@ -1,11 +1,64 @@
 .b-development {
-    position: fixed;
-    top: 0;
-    right: 0;
-    z-index: 9999;
+    align-items: center;
+    background-color: #454545;
+}
+
+.b-cmd-palette {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0.5rem 0.5rem;
+}
+
+.b-cmd-palette .command-search {
+    color: black;
+    background-color: white;
+    position: relative;
+
+    border: 1px #00000000 solid;
+    border-radius: 0.5rem;
 
     display: flex;
-    flex-direction: column;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 40rem;
+    padding: 0.5rem 1rem;
+
+    border-color: #2f417732;
+    box-shadow: 0 0px 3px #2f4177ab, inset 0 0px 2px #2f417739;
+}
+
+.b-cmd-palette .command-search #cmd-search {
+    flex: 1;
+
+    background: none;
+    transition: 0.2s;
+    display: block;
+    border: none;
+    outline: none;
+    /* max-width: 3rem; */
+}
+
+.b-cmd-palette .command-search:has(#cmd-search:not(:placeholder-shown)),
+.b-cmd-palette .command-search:has(#cmd-search:focus) {
+    /* outline: 1px solid #2f4177ab; */
+    border-color: hsl(225, 43%, 63%);
+    box-shadow: 0 0px 5px #ffffff, 0 0px 30px #2f4177ab, inset 0 0px 20px #2f417739;
+}
+
+.b-cmd-palette .command-search .search-key {
+    position: absolute;
+    right: 1rem;
+    color: gray;
+
+    user-select: none;
+    -ms-user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
 }
 
 .b-socket {

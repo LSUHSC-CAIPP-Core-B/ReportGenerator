@@ -1,27 +1,25 @@
-{%- layout "base.html" %}
-{%- block content %}
-
-    {%- if project != undefined -%}
-        {% include "./project.html" %}
-    {%- else -%}
-
-        <div class="b-projects">
-            <p class="projects-title">Saved Projects</p>
-            {%- for report in reports %}
-            <div class="project-block">
-                {%- capture report_url %}{{ report.title | prepend: "/" | downcase }}{% endcapture %}
-                <a href="{{ report_url }}" class="project-reference">{{ report.title }}</a>
-                <p class="project-timestamp">{{ report.last_opened | date: "%B %d, %Y at %l:%M %P" }}</p>
-                <div class="project-actions">
-                    <a href="{{ report_url }}" class="project-action" aria-actiontype="edit">
-                        <i class="lni lnis-pencil-1"></i>
-                    </a>
-                    <a href="{{ report_url | append: '/delete' }}" class="project-action" aria-actiontype="edit">
-                        <i class="lni lnis-xmark-circle"></i>
-                    </a>
-                </div>
-            </div>
-            {%- endfor %}
+{%- component "wrappers/base.html", hascontents %}
+  
+  {%- if project != undefined -%}
+    {% include "./project.html" %}
+  {%- else -%}
+    <div class="b-projects">
+      <p class="projects-title">Saved Projects</p>
+      {%- for report in reports %}
+        <div class="project-block">
+          {%- capture report_url %}{{ report.title | prepend: "/" | downcase }}{% endcapture %}
+          <a href="{{ report_url }}" class="project-reference">{{ report.title }}</a>
+          <p class="project-timestamp">{{ report.last_opened | date: "%B %d, %Y at %l:%M %P" }}</p>
+          <div class="project-actions">
+            <a href="{{ report_url }}" class="project-action" aria-actiontype="edit">
+              <i class="icon-pencil"></i>
+            </a>
+            <a href="{{ report_url | append: '/delete' }}" class="project-action" aria-actiontype="edit">
+              <i class="icon-trash"></i>
+            </a>
+          </div>
         </div>
-    {%- endif %}
-{%- endblock %}
+      {%- endfor %}
+    </div>
+  {%- endif %}
+{%- endcomponent -%}

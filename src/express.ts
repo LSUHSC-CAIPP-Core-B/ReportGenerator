@@ -10,6 +10,8 @@ import { ProjectModel } from './database/schemas';
 import { Types } from 'mongoose';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 
+import { UAParser } from 'ua-parser-js';
+
 const app = express();
 
 app.engine('html', liquid.express());
@@ -32,9 +34,12 @@ app.get([ '/', '/:identifier' ], async (req: Request, res: Response) => {
   if (req.path != '/' && project == null)
     return res.redirect('/');
 
+  const parser = new UAParser(req.headers as Record<string, string>);
+  const os = {...parser.getOS()};
+
   res.render('builtin/home.html', {
     timestamp: new Date(),
-    project, reports
+    project, reports, os
   });
 });
 

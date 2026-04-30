@@ -34,7 +34,7 @@ const componentTagOptions: TagImplOptions = {
     ctx.restoreRegister(prevRegister);
 
     // Create isolated scope
-    const scope = {...properties, content, attributes};
+    const scope = {...ctx.environments, ...properties, content, attributes};
 
     // Render component file with scoped data
     return this.liquid.renderFileSync(`components/${this.templateName}`, scope);
@@ -43,18 +43,18 @@ const componentTagOptions: TagImplOptions = {
 
 const attributeTagOptions: TagImplOptions = {
   parse(this: Tag & TagImplOptions, tagToken: TagToken, remainingTokens: TopLevelToken[]) {
-    this.attribute = parseAttributes(tagToken.args.split(/\s*,\s*/));
+    this.attributes = parseAttributes(tagToken.args.split(/\s*,\s*/));
   },
   render: function*(this: Tag & TagImplOptions, ctx: Context, emitter: Emitter, hash: Record<string, any>) {
     if (!evalRenderCondition(this, ctx)) return '';
 
-    const name = evalValue<string>(this, ctx, this.attribute.name);
-    const value = evalValue<string | boolean>(this, ctx, this.attribute.value) ?? '';
+    const name = evalValue<string>(this, ctx, this.attributes.name);
+    const value = evalValue<string | boolean>(this, ctx, this.attributes.value) ?? '';
 
     if (!name) return "";
     
     const attributes = ctx.getRegister("attrs") || {};
-    resolveAttribute(attributes, { name, value }, this.attribute);
+    resolveAttribute(attributes, { name, value }, this.attributes);
     ctx.setRegister("attrs", attributes);
 
     return '';
@@ -125,16 +125,23 @@ function evalRenderCondition(tag: Tag & TagImplOptions, ctx: Context) {
 }
 
 function parseTemplates(tag: Tag & TagImplOptions, remainingTokens: TopLevelToken[], endToken: string): Template[] {
-  const { liquid, parser } = tag;
+  const { liquid, parser, name: startTagName } = tag;
 
-  // Handle block content (slot)
+  let depth = 0;
   const tokens: TopLevelToken[] = [];
   let token: TopLevelToken | undefined;
   while ((token = remainingTokens.shift())) {
-    if (token instanceof TagToken && token.name === endToken) break;
+    if (token instanceof TagToken) {
+      if (token.name === startTagName) depth++;
+      else if (token.name === endToken) {
+        if (depth === 0) break; depth--;
+      }
+    }
+
     tokens.push(token);
   }
 
+  if (!token) throw new Error(`tag "${startTagName}" not closed`);
   return (liquid.parser ?? parser).parseTokens(tokens);
 }
 
@@ -142,8 +149,8 @@ function parseAttributes(attributes: string[]): Record<string, any> {
   const result: Record<string, any> = {};
 
   attributes.forEach(pair => {
-    const [key, value] = pair.split(':').map(s => s.trim());
-    if (key) result[key] = (value ?? '');
+    const [key, ...value] = pair.split(':').map(s => s.trim());
+    if (key) result[key] = (value.join(':') ?? '');
   });
 
   return result;

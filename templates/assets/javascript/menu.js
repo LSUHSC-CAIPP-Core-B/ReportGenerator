@@ -94,4 +94,4 @@ function loadListener(event) {
 
 document.addEventListener('click', clickListener);
 document.addEventListener('scroll', scrollListener);
-document.addEventListener('DOMContentLoaded', loadListener);
+// document.addEventListener('DOMContentLoaded', loadListener);

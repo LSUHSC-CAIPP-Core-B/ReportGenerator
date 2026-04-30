@@ -1,38 +1,38 @@
-<div class="b-menu js-sticky">
-    <div class="menu-title">
-        <p class="desc">Table of Contents</p>
-    </div>
-    <div class="menu-container">
-        {% for group in project.groups %}
-            <div class="menu-entry">
-                <p class="desc">{{ group.title }}</p>
-            </div>
-        {% endfor %}
-    </div>
+<div class="b-menu js-sticky" style="top: 1rem;">
+  <div class="menu-title">
+    <p class="desc">Table of Contents</p>
+  </div>
+  <div class="menu-container">
+    {% for group in project.groups %}
+      <div class="menu-entry">
+        <p class="desc">{{ group.title }}</p>
+      </div>
+    {% endfor %}
+  </div>
 </div>
 <div class="b-content">
-    {%- for group in project.groups %}
-    <div class="b-container">
-        {%- for element in group.elements %}
-            {%- if element.file == null %}
-                {%- case element.type %}
-                {%- when "description" %}
-                    {% include "partial/section/description.html" %}
-                {%- endcase %}
-            {%- else %}
-                {%- capture identifier %}{% randomid %}{% endcapture %}
-                {%- case element.type %}
-                {%- when "html", "pdf" %}
-                    {% include "partial/section/types/frame.html" %}
-                {%- when "png", "svg", "jpeg", "jpg", "tiff", "tif" %}
-                    {% include "partial/section/types/image.html" %}
-                {%- when "csv" %}
-                    {% include "partial/section/types/table.html" %}
-                {%- else %}
-                    <p>{{ element | json }}</p>
-                {%- endcase %}
-            {%- endif %}
-        {%- endfor %}
-    </div>
+  {%- for group in project.groups %}
+  <div class="b-container">
+    {%- for element in group.elements %}
+      {%- if element.file == null %}
+        {%- case element.type %}
+        {%- when "description" %}
+          {% include "components/types/description.html" %}
+        {%- endcase %}
+      {%- else %}
+        {%- capture identifier %}{% randomid %}{% endcapture %}
+        {%- case element.type %}
+        {%- when "html", "pdf" %}
+          {% include "components/types/frame.html" %}
+        {%- when "png", "svg", "jpeg", "jpg", "tiff", "tif" %}
+          {% include "components/types/image.html" %}
+        {%- when "csv" %}
+          {% include "components/types/table.html" %}
+        {%- else %}
+          <p>{{ element | json }}</p>
+        {%- endcase %}
+      {%- endif %}
     {%- endfor %}
+  </div>
+  {%- endfor %}
 </div>

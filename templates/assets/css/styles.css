@@ -10,9 +10,36 @@
     -moz-window-dragging: no-drag;
 }
 
+i[class^="icon-"]::before,
+i[class*="icon-"]::before {
+    vertical-align: middle;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+    height: 100vh;
+}
+
+.b-report {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+
+.b-report .content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
 .b-navbar {
     display: block;
-    position: fixed;
+    position: sticky;
     top: 0;
     width: 100vw;
     height: 5.5rem;
@@ -90,7 +117,6 @@
 
     padding: 1rem;
     gap: 1rem;
-    margin-top: 5.5rem;
 }
 
 .b-menu {

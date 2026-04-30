@@ -16,15 +16,21 @@
 </head>
 
 <body>
-  {%- component "development.html", if: environment == "dev" %}
-  {% include "header.html" %}
+  {%- component "development.html" %}
 
-  {%- element "div" -%}
-    {%- assign environment = "NODE_ENV" | env: "prod" -%}
-    {%- attribute name: 'class', value: 'b-body' -%}
-    {% block content %}{% endblock %}
-  {% endelement -%}
+  {%- component "wrappers/report.html", hascontents %}
+    {% include "header.html" %}
 
-  {%- include "footer.html" %}
+    <div class="content">
+      {%- element "div" -%}
+        {%- assign environment = "NODE_ENV" | env: "prod" -%}
+        {%- attribute name: 'class', value: 'b-body' -%}
+
+        {{ content }}
+      {% endelement -%}
+
+      {%- include "footer.html" %}
+    </div>
+  {%- endcomponent -%}
 </body>
 </html>
