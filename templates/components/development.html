@@ -1,29 +1,30 @@
 {% assign environment = "NODE_ENV" | env: "prod" %}
 {% capture isMac %}{{ os.name contains "macOS" }}{% endcapture %}
-<!-- {{ os.name }} -->
-
 
 {%- element "span" -%}
   {%- attribute name: 'class', value: 'b-development' -%}
   {%- attribute name: 'id', value: 'development' -%}
   
-  <label class="b-cmd-palette" id="cmd-palette">
-    <div class="command-search">
+  <span class="b-cmd-palette" id="cmd-palette">
+    <label class="command-search">
       <i class="icon-search"></i>
       {%- element "input" -%}
-      {%- attribute name: 'type', value: 'text' -%}
-      {%- attribute name: 'name', value: 'search' -%}
-      {%- attribute name: 'id', value: 'cmd-search' -%}
-      {%- attribute name: 'placeholder', value: 'Search' -%}
+        {%- attribute name: 'type', value: 'text' -%}
+        {%- attribute name: 'name', value: 'search' -%}
+        {%- attribute name: 'id', value: 'cmd-search' -%}
+        {%- attribute name: 'placeholder', value: 'Search' -%}
       {%- endelement %}
       
       <span class="search-key">( {% element "i" -%}
         {%- attribute name: 'class', value: 'icon-command', if: os.name contains "macOS" -%}
         {%- attribute name: 'class', value: 'icon-chevron-up', if: os.name not contains "macOS" -%}
       {%- endelement %}+K )</span>
-    </div>
-  </label>
+    </label>
 
-
-{%- endelement %} <!-- throws error-->
+    {% element "span" -%}
+      {%- attribute name: 'class', value: 'cmd-list' -%}
+      {%- attribute name: 'style', value: 'display: none;' -%}
+    {%- endelement %}
+  </span>
+{%- endelement %}
 

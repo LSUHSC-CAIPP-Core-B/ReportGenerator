@@ -1,86 +1,154 @@
+class Draggable {
+    /**
+     * @type {Set<Draggable>}
+     */
+    static instances = new Set();
 
-/**
- * @param { DragEvent } event 
- */
-function dragStartListener(event) {
-    /** @type { Element | null } */
-    const element = event.target;
-    if (element == null) return;
+    /**
+     * Initialize all draggable elements on the page
+     */
+    static init() {
+        const elements = document.querySelectorAll(
+            '[draggable="true"]'
+        );
 
-    /** @type {DOMTokenList} */
-    const classes = element.classList;
-    if (!classes.contains('draggable')) return;
+        for (const element of elements) {
+            new Draggable(element);
+        }
+    }
 
-    classes.add('is-dragging');
-    document.body.classList.add('mask-dragging');
-}
+    /**
+     * Cleanup disconnected draggable instances
+     */
+    static cleanup() {
+        // create a temp array
+        for (const draggable of [...Draggable.instances]) {
+            if (draggable.element === document) continue;
+            if (!draggable.element.isConnected) draggable.destroy();
+        }
+    }
 
-/**
- * @param { DragEvent } event 
- */
-function dragEndListener(event) {
-    /** @type { Element | null } */
-    const element = event.target;
-    if (element == null) return;
 
-    /** @type {DOMTokenList} */
-    const classes = element.classList;
-    if (!classes.contains('draggable')) return;
+    /**
+     * @param {HTMLElement | Document} element
+     */
+    constructor(element = document) {
+        this.element = element;
 
-    classes.remove('is-dragging');
-    document.body.classList.remove('mask-dragging');
-}
+        this.dragStartListener = this.dragStartListener.bind(this);
+        this.dragEndListener = this.dragEndListener.bind(this);
+        this.dragOverListener = this.dragOverListener.bind(this);
 
-/**
- * @param { DragEvent } event 
- */
-function dragOverListener(event) {
-    // Let's hide the drag animation
-    event.preventDefault()
+        this.element.addEventListener('dragstart', this.dragStartListener);
+        this.element.addEventListener('dragend', this.dragEndListener);
+        this.element.addEventListener('dragover', this.dragOverListener);
+        Draggable.instances.add(this);
+    }
 
-    /** @type { Element } */
-    let parent = event.target;
-    if (parent == null) return;
-    
-    /** @type { Element } */
-    const element = document.querySelector('.b-container .draggable.is-dragging');
-    if (element == null) return;
+    /**
+     * @param {DragEvent} event
+     */
+    dragStartListener(event) {
+        /** @type {Element | null} */
+        const element = event.target;
+        if (element == null) return;
 
-    if (!parent.classList.contains('b-container'))
-        // This must be a sibling element
-        if (parent.classList.contains('draggable'))
-            parent = parent.parentElement;
-    
-    // Let's recheck if the parent is a container
-    if (!parent.classList.contains('b-container')) return;
-    
-    const draggableElements = [...parent.querySelectorAll(':scope > .draggable')];
+        /** @type {DOMTokenList} */
+        const classes = element.classList;
+        if (!classes.contains('draggable')) return;
 
-    const afterElement = draggableElements.reduce((closest, child) => {
-        if (child.classList.contains('is-dragging'))
-            return closest;
+        classes.add('is-dragging');
+        document.body.classList.add('mask-dragging');
+    }
 
-        const box = child.getBoundingClientRect();
-        const offset = event.clientY - box.top - box.height/2;
-        if (offset < 0 && offset > closest.offset)
-            return { offset, element: child };
-        else return closest;
-    }, { offset: Number.NEGATIVE_INFINITY })?.element;
+    /**
+     * @param {DragEvent} event
+     */
+    dragEndListener(event) {
+        /** @type {Element | null} */
+        const element = event.target;
+        if (element == null) return;
 
-    const selfIndex = draggableElements.indexOf(element),
-        afterElementIndex = draggableElements.indexOf(afterElement);
+        /** @type {DOMTokenList} */
+        const classes = element.classList;
+        if (!classes.contains('draggable')) return;
 
-    const isInParent = selfIndex >= 0;
-    const isBeforeAnElement = afterElementIndex >= 0;
-    const elementPosition = (isBeforeAnElement ? afterElementIndex : draggableElements.length) - 1;
-    const shouldUpdate = !isInParent || selfIndex != elementPosition;
+        classes.remove('is-dragging');
+        document.body.classList.remove('mask-dragging');
+    }
 
-    if (shouldUpdate) {
-        if (afterElement) parent.insertBefore(element, afterElement);
-        else parent.appendChild(element);
+    /**
+     * @param {DragEvent} event
+     */
+    dragOverListener(event) {
+        // Hide the default drag animation
+        event.preventDefault();
+
+        /** @type {Element | null} */
+        let parent = event.target;
+        if (parent == null) return;
+
+        /** @type {Element | null} */
+        const element = document.querySelector(
+            '.b-container .draggable.is-dragging'
+        );
+
+        if (element == null) return;
+
+        if (!parent.classList.contains('b-container'))
+            // This must be a sibling element
+            if (parent.classList.contains('draggable'))
+                parent = parent.parentElement;
+
+        // Recheck if the parent is a container
+        if (parent == null || !parent.classList.contains('b-container')) return;
+
+        const draggableElements = [
+            ...parent.querySelectorAll(':scope > .draggable')
+        ];
+
+        const afterElement = draggableElements.reduce(
+            (closest, child) => {
+                if (child.classList.contains('is-dragging'))
+                    return closest;
+
+                const box = child.getBoundingClientRect();
+                const offset = event.clientY - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset)
+                    return { offset, element: child };
+
+                return closest;
+            },
+            { offset: Number.NEGATIVE_INFINITY }
+        )?.element;
+
+        const selfIndex = draggableElements.indexOf(element);
+        const afterElementIndex =
+            draggableElements.indexOf(afterElement);
+
+        const isInParent = selfIndex >= 0;
+        const isBeforeAnElement = afterElementIndex >= 0;
+
+        const elementPosition =
+            (isBeforeAnElement
+                ? afterElementIndex
+                : draggableElements.length) - 1;
+
+        const shouldUpdate =
+            !isInParent || selfIndex !== elementPosition;
+
+        if (shouldUpdate) {
+            if (afterElement) parent.insertBefore(element, afterElement);
+            else parent.appendChild(element);
+        }
+    }
+
+    destroy() {
+        this.element.removeEventListener('dragstart', this.dragStartListener);
+        this.element.removeEventListener('dragend', this.dragEndListener);
+        this.element.removeEventListener('dragover', this.dragOverListener);
+
+        Draggable.instances.delete(this);
     }
 }
-
-document.addEventListener('dragstart', dragStartListener);
-document.addEventListener('dragend', dragEndListener);
-document.addEventListener('dragover', dragOverListener);

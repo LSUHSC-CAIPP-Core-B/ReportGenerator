@@ -1,26 +1,67 @@
-(() => {
+class SocketStatus {
+    /**
+     * @param {Object} options
+     * @param {Function|null} [options.onConnect]
+     * @param {Function|null} [options.onDisconnect]
+     */
+    constructor({
+        onConnect = null,
+        onDisconnect = null
+    } = {}) {
 
-    // create socket connection icon
-    const notification = document.createElement('span');
-    notification.classList.add('b-socket', 'disconnected');
-    // document.querySelector('#development').appendChild(notification);
+        /**
+         * User callbacks
+         * @type {Function|null}
+         */
+        this.onConnect = onConnect;
+        this.onDisconnect = onDisconnect;
 
-    const socket = io();
+        this.socket = io();
 
-    function changeConnectedStatus(connected = true) {
-        const classes = notification.classList;
-        classes.toggle('connected', connected);
-        classes.toggle('disconnected', !connected);
+        // Bind once and store references
+        this.connectListener = this.#connectListener.bind(this);
+        this.disconnectListener = this.#disconnectListener.bind(this);
+
+        this.socket.on('connect', this.connectListener);
+        this.socket.on('disconnect', this.disconnectListener);
     }
 
-    socket.on('connect', (origin) => {
-        changeConnectedStatus(true);
-    });
+    reconnect() {
+        if (this.socket.connected)
+            this.socket.disconnect();
+        this.socket.connect();
+    }
 
-    socket.on('disconnect', (origin) => {
-        changeConnectedStatus(false);
-    });
+    #connectListener() {
+        if (typeof this.onConnect === 'function') {
+            this.onConnect(this);
+        }
+    }
 
+    #disconnectListener() {
+        if (typeof this.onDisconnect === 'function') {
+            this.onDisconnect(this);
+        }
+    }
 
+    /**
+     * @param {Function|null} callback
+     */
+    setConnectCallback(callback) {
+        this.onConnect = callback;
+    }
 
-})();
+    /**
+     * @param {Function|null} callback
+     */
+    setDisconnectCallback(callback) {
+        this.onDisconnect = callback;
+    }
+
+    destroy() {
+        this.socket.off('connect', this.connectListener);
+        this.socket.off('disconnect', this.disconnectListener);
+
+        this.socket.disconnect();
+    }
+}
