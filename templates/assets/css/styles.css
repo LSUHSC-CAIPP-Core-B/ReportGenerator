@@ -31,7 +31,7 @@ body {
 }
 
 
-.b-report .content {
+.b-report .b-body {
     flex: 1;
     min-height: 0;
     overflow: auto;
@@ -110,7 +110,7 @@ body {
     flex-direction: column;
 }
 
-.b-body {
+.b-body .content {
     display: flex;
     flex-direction: row;
     box-sizing: content-box;

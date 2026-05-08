@@ -2,7 +2,7 @@ import { Context, Emitter, evalToken, Liquid, Parser, Tag, TagToken, TokenKind, 
 import { TagImplOptions, Template } from 'liquidjs/dist/template';
 
 export default function (this: Liquid, L: typeof Liquid) {
-  this.registerTag('component', componentTagOptions);
+  // this.registerTag('component', componentTagOptions);
 
   this.registerTag('attribute', attributeTagOptions);
   this.registerTag('element', elementTagOptions);

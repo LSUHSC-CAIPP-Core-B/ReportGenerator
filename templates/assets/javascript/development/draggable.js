@@ -1,4 +1,4 @@
-class Draggable {
+export class Draggable {
     /**
      * @type {Set<Draggable>}
      */
