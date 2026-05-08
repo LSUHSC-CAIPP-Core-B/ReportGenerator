@@ -1,4 +1,6 @@
-class SocketStatus {
+import { io } from "../external/socket.io-4.7.5.esm.min.js";
+
+export class SocketStatus {
     /**
      * @param {Object} options
      * @param {Function|null} [options.onConnect]

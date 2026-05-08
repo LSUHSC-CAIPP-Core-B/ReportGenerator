@@ -1,0 +1,23 @@
+{% capture isMac %}{{ os.name contains "macOS" }}{% endcapture -%}
+<span class="b-development" id="development">
+  <span class="b-cmd-palette" id="cmd-palette">
+    <label class="command-search">
+      <i class="icon-search"></i>
+      <input type="text" name="search" placeholder="Search" id="cmd-search">
+      
+      <span class="search-key">( {% element "i" -%}
+        {%- attribute name: 'class', value: 'icon-command', if: os.name contains "macOS" -%}
+        {%- attribute name: 'class', value: 'icon-chevron-up', if: os.name not contains "macOS" -%}
+      {%- endelement %}+K )</span>
+    </label>
+
+    <span class="cmd-list" style="display: none;">
+      <span class="cmd-entries"></span>
+      <span class="cmd-options">
+        <span class="option"><span class="key">esc</span>Close</span>
+        <span class="option"><span class="key"><i class="icon-arrow-up"></i></span><span class="key"><i class="icon-arrow-down"></i></span>Navigation</span>
+        <span class="option"><span class="key"><i class="icon-corner-down-left"></i></span>Select</span>
+      </span>
+    </span>
+  </span>
+</span>

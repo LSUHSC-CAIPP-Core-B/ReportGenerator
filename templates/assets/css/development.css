@@ -73,28 +73,64 @@
     background-color: white;
     box-shadow: 0 0px 5px #ffffff, 0 0px 30px #2f4177ab, inset 0 0px 20px #2f417739;
     border-radius: 0.5rem;
+    overflow: hidden;
 
-    .cmd-entry:not(:first-child) {
-        border-top: 1px solid #ededed;
+    .cmd-entries {
+        .cmd-entry[hidden] {
+            display: none !important;
+        }
+    
+        .cmd-entry {
+            display: grid;
+            grid-template-columns: 1rem min-content auto 1rem;
+            gap: 1rem;
+            white-space: nowrap;
+    
+            padding: 0.5rem 1rem;
+    
+            .label {
+                max-width: 100%;
+                text-overflow: ellipsis;
+            }
+    
+            .description {
+                text-overflow: clip;
+                font-style: italic;
+                color: #454545;
+            }
+        }
     }
 
-    .cmd-entry {
-        display: grid;
-        grid-template-columns: 1rem min-content auto 1rem;
-        gap: 1rem;
-        white-space: nowrap;
-
+    .cmd-options {
         padding: 0.5rem 1rem;
+        border-top: 1px solid #ededed;
+        position: relative;
+        display: inline-flex;
+        /* justify-content: center; */
+        gap: 2rem;
+        width: 100%;
 
-        .label {
-            max-width: 100%;
-            text-overflow: ellipsis;
-        }
+        color: #7a7a7a;
 
-        .description {
-            text-overflow: clip;
-            font-style: italic;
-            color: #454545;
+        .option {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            .key {
+                font-size: 0.8rem;
+                height: min-content;
+                margin: auto;
+                text-align: center;
+                align-content: center;
+                justify-content: center;
+                background-color: #ededed;
+                border: 1px solid #cfcfcf;
+                min-width: 2rem;
+                min-height: 1.5rem;
+                padding: auto;
+                border-radius: 0.5rem;
+            }
         }
     }
 }
