@@ -1,40 +1,3 @@
-/** @type { HTMLTableElement[] } */
-const tables = [...document.querySelectorAll('div')];
-
-for (const table of tables) {
-    const ariaTableAttr = table.attributes.getNamedItem('aria-table');
-    if (ariaTableAttr == null) continue;
-
-    const ariaFileTypeAttr = table.attributes.getNamedItem('aria-filetype');
-    const fileType = ariaFileTypeAttr.nodeValue || 'csv';
-
-    const url = new URL(ariaTableAttr.nodeValue, table.baseURI);
-    loadTable(table, url, fileType);
-}
-
-/**
- * @param {HTMLTableElement} element 
- * @param {URL} url 
- * @param {string} type 
- */
-function loadTable(element, url, type) {
-    (async () => {
-        const response = await fetch(url);
-        return await response.text();
-    })().then(data => {
-
-        let content;
-
-        switch (type) {
-            case 'csv':
-                content = loadCSVTable(data);
-        }
-
-        new TableHandler(element, content)
-            .maxRows(15).load();
-    })
-}
-
 /**
  * @param {HTMLTableElement} element 
  * @param {string} data 
@@ -51,7 +14,30 @@ function loadCSVTable(data) {
         );
 }
 
-class TableHandler {
+export class TableHandler {
+
+    /** @param {HTMLTableElement} element */
+    static async fromElement(element) {
+        const ariaTableAttr = element.attributes.getNamedItem('aria-table');
+        if (ariaTableAttr == null) return;
+
+        const url = new URL(ariaTableAttr.nodeValue, element.baseURI);
+        const ariaFileTypeAttr = element.attributes.getNamedItem('aria-filetype');
+        const fileType = ariaFileTypeAttr.nodeValue || 'csv';
+
+        const response = await fetch(url);
+        const data = await response.text();
+        let content;
+
+        switch (fileType) {
+            case 'csv':
+                content = loadCSVTable(data);
+        }
+
+        return new TableHandler(element, content)
+            .maxRows(15).load();
+    }
+
     /**
      * @param {HTMLElement} element 
      * @param {(string | number)[][]} data 

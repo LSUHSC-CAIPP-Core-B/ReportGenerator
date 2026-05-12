@@ -31,10 +31,17 @@ body {
 }
 
 
-.b-report .b-body {
-    flex: 1;
+.b-report .content {
+    /* flex: 1; */
     min-height: 0;
-    overflow: auto;
+    overflow: scroll;
+
+    display: flex;
+    flex-direction: row;
+    box-sizing: content-box;
+
+    padding: 1rem;
+    gap: 1rem;
 }
 
 .b-navbar {
@@ -110,19 +117,11 @@ body {
     flex-direction: column;
 }
 
-.b-body .content {
-    display: flex;
-    flex-direction: row;
-    box-sizing: content-box;
-
-    padding: 1rem;
-    gap: 1rem;
-}
-
 .b-menu {
     position: sticky;
     display: block;
     max-height: min-content;
+    top: 0;
 }
 
 .b-menu .menu-title {
@@ -219,6 +218,7 @@ body {
 
 .b-content {
     display: flex;
+    height: max-content;
     box-sizing: content-box;
     flex-direction: column;
 

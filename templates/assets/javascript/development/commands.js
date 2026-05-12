@@ -33,6 +33,10 @@ export class CommandPalette {
         display_amount = 8,
         macos = false
     }) {
+        this.stack = [];
+        this.currentActions = [];
+        this.context = {};
+
         this.actions = [];
         this.input = input;
         this.overlay = overlay;
@@ -59,40 +63,108 @@ export class CommandPalette {
         this.charReturn.classList.add('icon-corner-down-left', 'selection');
     }
 
+    #pushTab(actions, placeholder = '', parentAction = null) {
+        this.stack.push({
+            actions: this.currentActions,
+            value: this.input.value,
+            parentAction
+        });
+
+        this.currentActions = actions;
+        this.currentActions.forEach(action => {
+            action.parent = parentAction;
+        });
+
+        this.input.value = placeholder;
+        this.#renderCurrentActions();
+    }
+
+    #popTab() {
+        const previous = this.stack.pop();
+        if (!previous) return;
+
+        this.currentActions = previous.actions;
+        this.input.value = previous.value;
+
+        this.#renderCurrentActions();
+    }
+
+    #renderCurrentActions() {
+        this.entries.innerHTML = '';
+
+        this.currentActions.forEach(action => {
+            this.entries.appendChild(action.element);
+            action.element.hidden = false;
+        });
+
+        this.#executeSearch();
+        this.#validateSelector();
+        this.#updateDisplay();
+    }
+
     /**
      * @param {Object} options
-     * @param {HTMLElement} [options.element]
      * @param {string} options.label
+     * @param {string} options.icon
      * @param {string} [options.description]
      * @param {boolean} [options.closes]
-     * @param {Function} options.callback
+     * @param {Function} [options.callback]
+     * @param {Object[]} [options.tab]
+     * @param {string} [options.value]
+     * @param {"start" | "end"} [options.truncate]
+     * 
+     * @param {boolean} fromTab
      */
-    addAction({ element, label, description, closes = true, callback }) {
-        if (element === undefined)
-            element = document.createElement('span');
-
+    addAction({
+        label,
+        icon = 'dot',
+        description,
+        closes = true,
+        callback,
+        tab: tabActions,
+        value,
+        truncate = "end"
+    }, fromTab = false) {
+        const element = document.createElement('span');
         element.classList.add('cmd-entry');
-        for (const node of element.childNodes)
-            // No childs
-            element.removeChild(node);
 
-        const icon = document.createElement('i');
-        icon.classList.add('icon', 'icon-dot');
+        const iconEl = document.createElement('i');
+        iconEl.classList.add('icon', 'icon-' + icon);
 
         const labelEl = document.createElement('p');
         labelEl.classList.add('label');
         labelEl.innerText = label;
     
         const descriptionEl = document.createElement('p');
+        descriptionEl.setAttribute('truncate', truncate);
         descriptionEl.classList.add('description');
         descriptionEl.innerText = description ?? '';
 
-        element.append(icon, labelEl, descriptionEl);
-        
-        this.entries.appendChild(element);
-        this.actions.push({ element, label, description, closes, callback });
+        element.append(iconEl, labelEl, descriptionEl);
+    
+        const tab = tabActions?.map(action => this.#addTabAction(action));
 
-        return element;
+        const action = {
+            element, label, description, closes, callback, tab, value,
+        };
+
+        if (!fromTab) {
+            this.entries.appendChild(element);
+            this.actions.push(action);
+            if (this.stack.length === 0)
+                this.currentActions.push(action);
+        }
+
+        return fromTab ? action : element;
+    }
+
+    /**
+     * @param {Object} options
+     */
+    #addTabAction(options) {
+        const action = this.addAction(options, true);
+        action.element.toggleAttribute('cmd-tab-element', true);
+        return action;
     }
 
     /**
@@ -120,14 +192,30 @@ export class CommandPalette {
         if (children.length === 0) return;
         if (!children.includes(element)) return;
 
-        const action = this.actions
+        let action = this.currentActions
             .find(action => action.element === element);
+
+        if (action.tab) {
+            this.#pushTab(action.tab, '', action);
+            return false;
+        }
+
+        while (action.parent != null) {
+            const result = action.callback ? action.callback(action.value) : undefined;
+            const value = result ?? action.value;
+
+            if (value != null && value != undefined)
+                action.parent.value = value;
+
+            action = action.parent;
+            this.#popTab();
+        }
 
         // Move to most recent
         const first = this.entries.firstChild;
         this.entries.insertBefore(action.element, first);
 
-        action.callback();
+        action.callback(action.value);
         return action.closes;
     }
 
@@ -135,7 +223,8 @@ export class CommandPalette {
      * @returns {HTMLElement[]}
      */
     #getVisibleCommands() {
-        return [...this.entries.querySelectorAll('.cmd-entry:not([hidden])')];
+        return [...this.entries.querySelectorAll('.cmd-entry:not([hidden])')]
+            .filter(el => this.currentActions.some(a => a.element === el));
     }
 
     /**
@@ -210,20 +299,25 @@ export class CommandPalette {
      * @param {InputEvent} event 
      */
     documentInputChangeListener(event) {
-        const fuse = new Fuse(this.actions, {
+        const fuse = new Fuse(this.currentActions, {
             keys: ["label", "description"],
-            threshold: 0.4,
+            threshold: 0.1,
+
+            ignoreLocation: true,
+
+            // Ignore accents
+            ignoreDiacritics: true,
         });
 
         /** @type {string} */
         const query = this.input.value.trim();
 
         const matches = new Set( !query
-            ? this.actions
+            ? this.currentActions
             : fuse.search(query).map(result => result.item)
         );
 
-        this.actions.forEach(action => {
+        this.currentActions.forEach(action => {
             action.element.toggleAttribute(
                 "hidden", !matches.has(action)
             );
@@ -243,6 +337,10 @@ export class CommandPalette {
         const closes = [ 'Enter', 'Escape' ].includes(key);
         const cycles = [ 'Tab', 'ArrowUp', 'ArrowDown' ].includes(key);
         const selected = this.charReturn.parentElement;
+
+        if (key === 'Backspace' && !this.input.value) {
+            this.#popTab(); cancelEvent(); return;
+        }
 
         if (closes) {
             if (key === 'Enter') {
@@ -277,13 +375,19 @@ export class CommandPalette {
         this.overlay.style.display = '';
         this.entries.firstChild.appendChild(this.charReturn);
 
-        // execute search
-        this.input.dispatchEvent(new InputEvent("input"));
+        this.#executeSearch();
     }
 
     close() {
         this.isOpen = false;
         this.overlay.style.display = 'none';
+
+        while (this.stack.length > 0)
+            this.#popTab();
+    }
+
+    #executeSearch() {
+        this.input.dispatchEvent(new InputEvent("input"));
     }
 
     destroy() {
