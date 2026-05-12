@@ -21,10 +21,6 @@
   <title>{{ title | titlecase }}</title>
 
   <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css" />
-
-  <script src="/assets/javascript/menu.js" defer></script>
-  <script src="/assets/javascript/table.js" defer></script>
-  <script src="/assets/javascript/iframe.js" defer></script>
   
   {% if environment == 'dev' -%}
   {% element "script" -%}
@@ -36,7 +32,7 @@
 </head>
 
 <body>
-  {% render "development.html" %}
+  {% include "development.html" %}
 
   <navbar class="b-navbar">
     <span class="navigation">
@@ -51,39 +47,37 @@
     </span>
   </navbar>
 
-  <div class="b-body">
+  <div class="b-report">
     <div class="content">
-      <div class="b-report">
-        {%- if project != undefined %}
-        {% comment %} <!-- {% endcomment %}
-        {% comment %} Why this? I don't like syntax errors... So it's a quick fix {% endcomment %}
-        <script type="module">
-          import { ReportBuilder } from '/assets/javascript/report.js';
-          const parentElement = document.querySelector('body > div.b-body > div.content > div.b-report');
-          ReportBuilder.init({{ project | json }}, parentElement);
-        </script>
-        {% comment %} --> {% endcomment %}
-        {%- else -%}
-        <div class="b-projects">
-          <p class="projects-title">Saved Projects</p>
-          {%- for report in reports %}
-            <div class="project-block">
-              {%- capture report_url %}{{ report.title | prepend: "/" | downcase }}{% endcapture %}
-              <a href="{{ report_url }}" class="project-reference">{{ report.title }}</a>
-              <p class="project-timestamp">{{ report.last_opened | date: "%B %d, %Y at %l:%M %P" }}</p>
-              <div class="project-actions">
-                <a href="{{ report_url }}" class="project-action" aria-actiontype="edit">
-                  <i class="icon-pencil"></i>
-                </a>
-                <a href="{{ report_url | append: '/delete' }}" class="project-action" aria-actiontype="edit">
-                  <i class="icon-trash"></i>
-                </a>
-              </div>
+      {%- if project != undefined %}
+      {% comment -%} <!-- {% endcomment -%}
+      {% comment -%} Why this? I don't like syntax errors... So it's a quick fix {% endcomment -%}
+      <script type="module">
+        import { ReportBuilder } from '/assets/javascript/report.js';
+        window.report = ReportBuilder.init({{ project | json }}, document.querySelector('body > div.b-report > div.content'));
+        document.querySelector('body > div.b-report > div.content > script[type=module]').remove();
+      </script>
+      {%- comment %} --> {% endcomment %}
+      {%- else -%}
+      <div class="b-projects">
+        <p class="projects-title">Saved Projects</p>
+        {%- for report in reports %}
+          <div class="project-block">
+            {%- capture report_url %}{{ report.title | prepend: "/" | downcase }}{% endcapture %}
+            <a href="{{ report_url }}" class="project-reference">{{ report.title }}</a>
+            <p class="project-timestamp">{{ report.last_opened | date: "%B %d, %Y at %l:%M %P" }}</p>
+            <div class="project-actions">
+              <a href="{{ report_url }}" class="project-action" aria-actiontype="edit">
+                <i class="icon-pencil"></i>
+              </a>
+              <a href="{{ report_url | append: '/delete' }}" class="project-action" aria-actiontype="edit">
+                <i class="icon-trash"></i>
+              </a>
             </div>
-          {%- endfor %}
-        </div>
-        {%- endif %}
+          </div>
+        {%- endfor %}
       </div>
+      {%- endif %}
     </div>
   </div>
 </body>

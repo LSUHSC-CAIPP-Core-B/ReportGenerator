@@ -4,7 +4,7 @@
     <label class="command-search">
       <i class="icon-search"></i>
       <input type="text" name="search" placeholder="Search" id="cmd-search">
-      
+
       <span class="search-key">( {% element "i" -%}
         {%- attribute name: 'class', value: 'icon-command', if: os.name contains "macOS" -%}
         {%- attribute name: 'class', value: 'icon-chevron-up', if: os.name not contains "macOS" -%}

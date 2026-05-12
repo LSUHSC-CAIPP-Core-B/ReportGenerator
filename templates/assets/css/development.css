@@ -69,6 +69,8 @@
     top: 3rem;
     z-index: 9999;
 
+    display: flex;
+    flex-direction: column;
     width: 100%;
     background-color: white;
     box-shadow: 0 0px 5px #ffffff, 0 0px 30px #2f4177ab, inset 0 0px 20px #2f417739;
@@ -76,6 +78,8 @@
     overflow: hidden;
 
     .cmd-entries {
+        width: 100%;
+
         .cmd-entry[hidden] {
             display: none !important;
         }
@@ -94,9 +98,18 @@
             }
     
             .description {
-                text-overflow: clip;
+                white-space: nowrap;
+                overflow: hidden;
+
+                text-overflow: ellipsis;
                 font-style: italic;
                 color: #454545;
+                padding-right: 2px;
+
+                &[truncate=start] {
+                    direction: rtl;
+                    text-align: justify;
+                }
             }
         }
     }
