@@ -23,7 +23,7 @@ function between(value, min, max) {
 export class CommandPalette {
     /**
      * @param {Object} options
-     * @param {HTMLElement} options.input
+     * @param {HTMLInputElement} options.input
      * @param {HTMLElement} options.overlay
      * @param {number} [options.display_amount]
      * @param {boolean} [options.macos]
@@ -33,9 +33,18 @@ export class CommandPalette {
         display_amount = 8,
         macos = false
     }) {
+        // For tabs
         this.stack = [];
         this.currentActions = [];
         this.context = {};
+
+        // For auto complete
+        this.lastKeyChar = false;
+        this.originalInput = '';
+        this.autocomplete = false;
+
+        // For clicking
+        this.forceNoClose = false;
 
         this.actions = [];
         this.input = input;
@@ -53,7 +62,7 @@ export class CommandPalette {
 
         document.addEventListener('keydown', this.keydownListener);
         this.overlay.addEventListener('mousemove', this.overlayMouseMoveListener);
-        this.overlay.addEventListener('click', this.overlayClickListener);
+        this.overlay.addEventListener('mousedown', this.overlayClickListener);
         this.input.addEventListener('input', this.documentInputChangeListener);
         this.input.addEventListener('focus', this.documentFocusChangeListener);
         this.input.addEventListener('focusout', this.documentFocusChangeListener);
@@ -66,9 +75,13 @@ export class CommandPalette {
     #pushTab(actions, placeholder = '', parentAction = null) {
         this.stack.push({
             actions: this.currentActions,
-            value: this.input.value,
+            value: this.autocomplete ? this.originalInput : this.input.value,
             parentAction
         });
+
+        // Let's reset auto complete
+        this.autocomplete = false;
+        this.originalInput = '';
 
         this.currentActions = actions;
         this.currentActions.forEach(action => {
@@ -87,6 +100,42 @@ export class CommandPalette {
         this.input.value = previous.value;
 
         this.#renderCurrentActions();
+    }
+
+    #getRecentCommands() {
+        return [...this.entries.querySelectorAll('.cmd-entry:not([hidden])')]
+            .map(el => this.currentActions.find(a => a.element === el));
+    }
+
+    #autocomplete() {
+        // Must have been a delete key or something
+        if (!this.lastKeyChar) return;
+
+        this.originalInput = this.input.value;
+        const length = this.originalInput.length;
+        const query = this.originalInput.trimStart().toLowerCase();
+        if (!query) return;
+
+        const cmds = this.#getRecentCommands();
+        const selected = cmds.find(({ label }) => {
+            var lower = label.toLowerCase();
+            var index = lower.indexOf(query);
+            if (index == 0) return true;
+
+            // needs to be start of word
+            return lower.substring(index - 1, index).match(/^\s$/);
+        });
+        if (!selected) return;
+
+        selected.element.appendChild(this.charReturn);
+        const textIndex = selected.label.toLowerCase().indexOf(query);
+        const text = selected.label.substring(textIndex + query.length);
+
+        this.autocomplete = text.length !== 0;
+        if (!this.autocomplete) return;
+
+        this.input.value += text;
+        this.input.setSelectionRange( length, length + text.length );
     }
 
     #renderCurrentActions() {
@@ -292,7 +341,8 @@ export class CommandPalette {
      * @param {MouseEvent} event
      */
     overlayClickListener(event) {
-
+        const selected = this.charReturn.parentElement;
+        this.forceNoClose = !this.#select(selected);
     }
 
     /**
@@ -325,6 +375,7 @@ export class CommandPalette {
 
         this.#validateSelector();
         this.#updateDisplay();
+        this.#autocomplete();
     }
 
     /**
@@ -338,8 +389,22 @@ export class CommandPalette {
         const cycles = [ 'Tab', 'ArrowUp', 'ArrowDown' ].includes(key);
         const selected = this.charReturn.parentElement;
 
-        if (key === 'Backspace' && !this.input.value) {
-            this.#popTab(); cancelEvent(); return;
+        if (key === 'Backspace') {
+            if (this.autocomplete) {
+                this.autocomplete = false;
+            } else if (!this.input.value) {
+                cancelEvent();
+                this.#popTab();
+                return;
+            }
+        }
+
+        if (key === 'Tab' && this.autocomplete) {
+            this.autocomplete = false;
+            let last = this.input.value.length;
+            this.input.setSelectionRange(last, last);
+            cancelEvent();
+            return;
         }
 
         if (closes) {
@@ -360,14 +425,21 @@ export class CommandPalette {
             this.#cycle({previous, selected});
             return;
         }
+
+        this.lastKeyChar = key.length === 1;
     }
 
     /**
      * @param {FocusEvent} event 
      */
-    documentFocusChangeListener(event) {
-        if (event.type === 'focus') this.open();
-        else this.close();
+    async documentFocusChangeListener(event) {
+        if (event.type === 'focus') return this.open();
+        await new Promise(accept => setTimeout(accept, 10));
+
+        if (this.forceNoClose) {
+            this.forceNoClose = false;
+            this.input.focus();
+        } else this.close();
     }
 
     open() {
@@ -378,7 +450,7 @@ export class CommandPalette {
         this.#executeSearch();
     }
 
-    close() {
+    async close() {
         this.isOpen = false;
         this.overlay.style.display = 'none';
 
