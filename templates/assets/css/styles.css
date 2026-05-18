@@ -21,6 +21,10 @@ body {
 
     overflow: hidden;
     height: 100vh;
+
+    &.local iframe {
+        pointer-events: none;
+    }
 }
 
 .b-report {
@@ -28,6 +32,10 @@ body {
     min-height: 0;
     display: flex;
     flex-direction: column;
+    background-color: #eff2f7;
+    position: relative;
+
+    padding: 1rem 0 0 0;
 }
 
 
@@ -40,13 +48,14 @@ body {
     flex-direction: row;
     box-sizing: content-box;
 
-    padding: 1rem;
+    padding: 5.5rem 0;
+    margin: 0 1rem;
     gap: 1rem;
 }
 
 .b-navbar {
     display: block;
-    position: sticky;
+    position: absolute;
     top: 0;
     width: 100vw;
     height: 5.5rem;
@@ -226,6 +235,7 @@ body {
     gap: 1rem;
     width: 100%;
     overflow: hidden;
+    padding: .25rem;
 }
 
 .b-container {
@@ -233,8 +243,20 @@ body {
     flex-direction: column;
     width: 100%;
     /* padding: 1rem; */
-    border: 1px solid black;
+    /* border: 1px solid black; */
     min-height: 4rem;
+    background-color: white;
+    box-shadow: 0 0 3px #2f4177ab;
+
+    max-width: 1100px;
+    margin: 0 auto;
+    border-radius: 1rem;
+
+    &.drag-hover, &.pending-target {
+        outline: 2px dashed #4a90e2;
+        background: rgba(74, 144, 226, 0.08);
+    }
+
 }
 
 .b-element {
@@ -263,19 +285,58 @@ body {
 
 .b-description {
     width: 100%;
-    max-width: 1100px;
     margin: 0 auto;
+
+    &.editing {
+        outline: 2px solid #4a90e2;
+        border-radius: 6px;
+        background: rgba(74,144,226,0.08);
+        padding: 4px 6px;
+    }
+}
+
+.format-toolbar {
+    position: absolute;
+
+    display: flex;
+    gap: 6px;
+
+    background: #111;
+    color: white;
+
+    padding: 6px 8px;
+
+    border-radius: 8px;
+
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+
+    z-index: 9999;
+}
+
+.format-toolbar button {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+.format-toolbar button:hover {
+    background: rgba(255,255,255,0.15);
 }
 
 .b-frame {
     width: 100%;
-    max-width: 1100px;
+    /* max-width: 1100px; */
     /* height: max-content; */
-    margin: 0 auto;
+    /* margin: 0 auto; */
     border: none;
 }
 
 .b-image {
+    width: 100%;
     max-width: 50rem;
     margin: 0 auto;
 }
@@ -284,8 +345,9 @@ body {
     display: flex;
     flex-direction: column;
     margin: 1rem auto;
-    max-width: 1100px;
+    /* max-width: 1100px; */
     font-size: 0.8rem;
+    width: 100%;
 
     gap: 0.5rem;
 }
@@ -304,7 +366,7 @@ body {
     align-content: center;
     overflow: scroll;
     border: 1px solid #acacac;
-    max-width: 1100px;
+    /* max-width: 1100px; */
 }
 
 .b-table .table-controls {
@@ -396,4 +458,49 @@ body {
         width: 1px;
         height: 100%;
     }
+}
+
+.insert-marker {
+    height: 4px;
+    margin: 8px 0;
+
+    border-radius: 999px;
+    background: #4a90e2;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+}
+
+
+.pm-toolbar {
+    position: absolute;
+    display: flex;
+    gap: 6px;
+    padding: 6px 8px;
+    background: #111;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    z-index: 9999;
+}
+
+.pm-toolbar.hidden {
+    display: none;
+}
+
+.pm-toolbar button {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+.pm-toolbar button.active {
+    background: rgba(255,255,255,0.2);
 }
