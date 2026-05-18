@@ -34,20 +34,20 @@
 <body>
   {% include "development.html" %}
 
-  <navbar class="b-navbar">
-    <span class="navigation">
-      <span class="nav-group">
-        <img src="/assets/images/logo-full.png" alt="LSUHS Logo" class="logo logo-full" draggable="false">
-      </span>
-      <span class="nav-group">
-        <p class="nav-element">BIOINFORMATICS & MODELING CORE | CAIPP</p>
-        <p class="nav-element">RRID:SCR_024779</p>
-        <p class="nav-element">{{ title }}</p>
-      </span>
-    </span>
-  </navbar>
-
   <div class="b-report">
+    <navbar class="b-navbar">
+      <span class="navigation">
+        <span class="nav-group">
+          <img src="/assets/images/logo-full.png" alt="LSUHS Logo" class="logo logo-full" draggable="false">
+        </span>
+        <span class="nav-group">
+          <p class="nav-element">BIOINFORMATICS & MODELING CORE | CAIPP</p>
+          <p class="nav-element">RRID:SCR_024779</p>
+          <p class="nav-element">{{ title }}</p>
+        </span>
+      </span>
+    </navbar>
+
     <div class="content">
       {%- if project != undefined %}
       {% comment -%} <!-- {% endcomment -%}

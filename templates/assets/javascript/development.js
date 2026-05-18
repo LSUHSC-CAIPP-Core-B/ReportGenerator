@@ -53,35 +53,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const tables = files.filter(({ type }) => [ 'csv' ].includes(type.toLowerCase()));
             const frames = files.filter(({ type }) => [ 'html', 'pdf' ].includes(type.toLowerCase()));
 
-            const imageElement = commandPalette.addAction({
+            commandPalette.addAction({
                 label: 'Add Image',
                 description: 'Choose from Database',
                 icon: 'image',
                 tab: images,
-                callback: (value) => {
-                    console.log(value);
+                callback: ({ id: file, type }) => {
+                    REPORT.beginPendingElement({ type, file });
                 },
                 closes: true
             });
 
-            const tableElement = commandPalette.addAction({
+            commandPalette.addAction({
                 label: 'Add Table',
                 description: 'Choose from Database',
                 icon: 'table',
                 tab: tables,
-                callback: (value) => {
-                    console.log(value);
+                callback: ({ id: file, type }) => {
+                    REPORT.beginPendingElement({ file, type });
                 },
                 closes: true
             });
 
-            const embeddedPageElement = commandPalette.addAction({
+            commandPalette.addAction({
                 label: 'Add Embedded Page',
                 description: 'Choose from Database',
                 icon: 'panels-top-left',
                 tab: frames,
-                callback: (value) => {
-                    console.log(value);
+                callback: ({ id: file, type }) => {
+                    REPORT.beginPendingElement({ file, type });
                 },
                 closes: true
             });
@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 label: 'Add Text Field',
                 icon: 'list-plus',
                 callback: (value) => {
+                    REPORT.beginPendingElement({ type: 'description' });
                 }
             });
         }
