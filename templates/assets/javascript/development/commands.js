@@ -172,6 +172,7 @@ export class CommandPalette {
         callback,
         tab: tabActions,
         value,
+        visibility = 'shown',
         truncate = "end"
     }, fromTab = false) {
         const element = document.createElement('span');
@@ -194,7 +195,9 @@ export class CommandPalette {
         const tab = tabActions?.map(action => this.#addTabAction(action));
 
         const action = {
-            element, label, description, closes, callback, tab, value,
+            element, label, description,
+            closes, callback, visibility,
+            tab, value
         };
 
         if (!fromTab) {
@@ -368,9 +371,13 @@ export class CommandPalette {
         );
 
         this.currentActions.forEach(action => {
-            action.element.toggleAttribute(
-                "hidden", !matches.has(action)
-            );
+            const { visibility } = action;
+            const contains = matches.has(action);
+
+            const canShow = visibility !== 'hidden' && !( visibility === 'searchable' && !query );
+            const shown = (canShow && contains) || visibility === 'always';
+
+            action.element.toggleAttribute( "hidden", !shown);
         });
 
         this.#validateSelector();

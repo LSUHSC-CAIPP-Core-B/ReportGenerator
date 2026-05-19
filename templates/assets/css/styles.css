@@ -479,6 +479,8 @@ body {
 .pm-toolbar {
     position: absolute;
     display: flex;
+    /* flex-direction: column; */
+
     gap: 6px;
     padding: 6px 8px;
     background: #111;
@@ -486,6 +488,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.25);
     z-index: 9999;
+    transform: translate(0, -100%);
 }
 
 .pm-toolbar.hidden {
