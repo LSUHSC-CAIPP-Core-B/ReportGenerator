@@ -1,9 +1,6 @@
 import { CommandPalette } from './development/commands.js';
 import { SocketStatus } from './development/sockets.js';
-import { Draggable } from './development/draggable.js';
-
-// // Initialize draggable elements
-// Draggable.init();
+import { ReportBuilder } from './report/ReportBuilder.js';
 
 // Make the command palette
 const commandPalette = new CommandPalette({
@@ -37,9 +34,12 @@ status.setDisconnectCallback(() => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    const { report: REPORT } = window;
+    /** @type { ReportBuilder } */
+    const REPORT = window.report;
+    const groupManager = REPORT.getGroupManager();
+    const insertManager = REPORT.getPendingInsertManager();
 
-    status.socket.emit('db.files', REPORT.projectId,
+    status.socket.emit('db.files', REPORT.getProjectId(),
         (fileIds) => {
             // Centralized config to avoid duplicate objects
             const FILE_GROUPS = {
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     types: ['csv']
                 },
                 frame: {
-                    label: 'Add Embedded Page',
+                    label: 'Add Interactive Page',
                     description: 'Choose from Database',
                     icon: 'panels-top-left',
                     types: ['html', 'pdf']
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tree = constructTree({ groups: PATH_GROUPS, label, description, icon });
 
                 tree.callback = ({ id: file, type }) => {
-                    REPORT.beginPendingElement({ file, type });
+                    insertManager.beginPendingElement({ file, type });
                 };
 
                 commandPalette.addAction(tree);
@@ -167,7 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 label: 'Add Text Field',
                 icon: 'list-plus',
                 callback: (value) => {
-                    REPORT.beginPendingElement({ type: 'description' });
+                    insertManager.beginPendingElement({ type: 'description' });
+                }
+            });
+
+            commandPalette.addAction({
+                label: 'Add Group',
+                icon: 'group',
+                callback: (value) => {
+                    groupManager.create({ title: 'New Group' });
                 }
             });
         }

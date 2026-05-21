@@ -313,10 +313,3 @@ export class TableHandler {
     }
 
 }
-
-
-
-// <span class="draggable b-table" draggable="true">
-//     <table aria-table="database/{{project.project}}/{{element.file}}/$" aria-filetype="{{element.type}}"></table>
-// </span>
-

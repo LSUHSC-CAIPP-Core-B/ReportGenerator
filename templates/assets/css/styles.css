@@ -204,7 +204,7 @@ body {
     top: 50%;
     right: 0;
 
-    transform: translate(-50%, -50%) rotate(-45deg);
+    transform: translate(-50%, -50%) rotate(45deg);
     clip-path: polygon(20% 80%, 20% 50%, 50% 50%, 50% 20%, 80% 20%, 80% 80%);
     transition: all 0.1s linear;
 
@@ -214,7 +214,7 @@ body {
 }
 
 .b-menu .menu-container .menu-entry.collapsable.collapsed::after {
-    transform: translate(-50%, -50%) rotate(45deg);
+    transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .b-menu .menu-container .menu-entry:nth-child(2n) {
@@ -251,6 +251,7 @@ body {
     max-width: 1100px;
     margin: 0 auto;
     border-radius: 1rem;
+    overflow: hidden;
 
     &.drag-hover, &.pending-target {
         outline: 2px dashed #4a90e2;
@@ -267,7 +268,7 @@ body {
     flex-direction: column;
 }
 
-.b-element.draggable {
+.b-element[draggable="true"] {
     /* padding: 1rem; */
     background-color: white;
     /* border: 1px solid black; */
@@ -275,11 +276,11 @@ body {
     cursor: move;
 }
 
-.b-element.draggable:last-child {
+.b-element[draggable="true"]:last-child {
     border-bottom: none;
 }
 
-.b-element.draggable.is-dragging {
+.b-element[draggable="true"].dragging {
     opacity: 50%;
 }
 

@@ -14,3 +14,7 @@ export async function catchErrorTyped<T, E extends ErrorConstructors>(
         });
 }
 
+export function getParam<T>(value: T | T[], index = 0): T {
+    return Array.isArray(value) ? value[index] : value;
+}
+
