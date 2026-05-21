@@ -3,7 +3,7 @@ import express, { type Request, type Response, static as staticFiles } from 'exp
 import liquid from './liquidjs'
 import projects, { reduceReport } from './projects';
 import { TEMPLATE_DIRECTORY } from './constants';
-import { catchErrorTyped } from './utilities';
+import { catchErrorTyped, getParam } from './utilities';
 import { ProjectError } from './projects/types';
 import { ProjectModel } from './database/schemas';
 
@@ -60,13 +60,21 @@ app.delete('/:identifier', async (req: Request, res: Response) => {
 
 app.get([ '/database/:project/:file/$', '/database/:project/:file/*relative' ], async (req: Request, res: Response) => {
   const {
-    project: projectIdStr,
-    file: fileIdStr,
+    project: projectIdArr,
+    file: fileIdArr,
     relative: relatives
   } = req.params;
 
-  const projectId = Types.ObjectId.createFromHexString(projectIdStr as string);
-  const fileId = Types.ObjectId.createFromHexString(fileIdStr as string);
+  const projectIdStr = getParam(projectIdArr);
+  const fileIdStr = getParam(fileIdArr);
+
+  if (!projectIdStr.match(/^[a-f\d]{24}$/gi))
+    return res.json({ status: 400, message: 'Project ID needs to be a 24 character hex'});
+  if (!fileIdStr.match(/^[a-f\d]{24}$/gi))
+    return res.json({ status: 400, message: 'File ID needs to be a 24 character hex'});
+
+  const projectId = Types.ObjectId.createFromHexString(projectIdStr);
+  const fileId = Types.ObjectId.createFromHexString(fileIdStr);
 
   const additional = (relatives != null)
     ? ( Array.isArray(relatives) ) ? relatives

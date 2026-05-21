@@ -1,0 +1,34 @@
+
+export class ReportGroup {
+    /**
+     * @param {Object} options
+     * @param {string} options.id
+     * @param {string} options.title
+     * @param {HTMLElement} options.menuEntry
+     * @param {HTMLElement} options.content
+     * @param {string} [options.parentId]
+     * @param {number} [options.depth]
+     */
+    constructor({
+        id,
+        title,
+        menuEntry,
+        content,
+        parentId = null,
+        depth = 0
+    }) {
+        this.id = id;
+        this.title = title;
+
+        this.parentId = parentId;
+        this.depth = depth;
+
+        this.collapsed = false;
+
+        this.menuEntry = menuEntry;
+        this.content = content;
+
+        /** @type {ReportElement[]} */
+        this.elements = [];
+    }
+}

@@ -53,8 +53,8 @@
       {% comment -%} <!-- {% endcomment -%}
       {% comment -%} Why this? I don't like syntax errors... So it's a quick fix {% endcomment -%}
       <script type="module">
-        import { ReportBuilder } from '/assets/javascript/report.js';
-        window.report = ReportBuilder.init({{ project | json }}, document.querySelector('body > div.b-report > div.content'));
+        import { ReportBuilder } from '/assets/javascript/report/ReportBuilder.js';
+        window.report = new ReportBuilder({{ project | json }}, document.querySelector('body > div.b-report > div.content'));
         document.querySelector('body > div.b-report > div.content > script[type=module]').remove();
       </script>
       {%- comment %} --> {% endcomment %}
