@@ -41,7 +41,7 @@ export class PendingInsertManager {
 
         this.#updateKeyboardInsertMarker();
         document.addEventListener('keydown', this.#handlePendingKeybinds);
-        document.body.classList.add('local');
+        this.#report.toggleFrames(false);
     }
 
     cancelPendingElement() {
@@ -53,7 +53,7 @@ export class PendingInsertManager {
         this.#clearGroupSelectionUI();
 
         document.removeEventListener('keydown', this.#handlePendingKeybinds);
-        document.body.classList.remove('local');
+        this.#report.toggleFrames(true);
     }
 
     #handlePendingKeybinds(event) {
@@ -98,7 +98,7 @@ export class PendingInsertManager {
     attachGroupEvents(groupId) {
         const groupManager = this.#report.getGroupManager();
         const elementManager = this.#report.getElementManager();
-        const { content, id } = groupManager.getGroup(groupId);
+        const { content, identifier } = groupManager.getGroup(groupId);
 
         content.addEventListener('mousemove', event => {
             if (!this.#pendingElement) return;
@@ -118,9 +118,9 @@ export class PendingInsertManager {
                 }
             }
 
-            this.#pendingId = id;
+            this.#pendingId = identifier;
             this.#pendingInsertIndex = insertIndex;
-            this.setInsertMarker(id, insertIndex);
+            this.setInsertMarker(identifier, insertIndex);
         });
 
         content.addEventListener('click', () => {
@@ -156,7 +156,7 @@ export class PendingInsertManager {
                 const prevGroupId = groupManager.getGroupId(groupIndex);
                 const prevGroup = groupManager.getGroup(prevGroupId);
 
-                this.#pendingId = prevGroup.id;
+                this.#pendingId = prevGroup.identifier;
                 this.#pendingInsertIndex = prevGroup.elements.length;
             } else this.#pendingInsertIndex = nextIndex;
         } else {
@@ -168,7 +168,7 @@ export class PendingInsertManager {
                 const nextGroupId = groupManager.getGroupId(groupIndex);
                 const nextGroup = groupManager.getGroup(nextGroupId);
 
-                this.#pendingId = nextGroup.id;
+                this.#pendingId = nextGroup.identifier;
                 this.#pendingInsertIndex = 0;
             } else this.#pendingInsertIndex = nextIndex;
         }

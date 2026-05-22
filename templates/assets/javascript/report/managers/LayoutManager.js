@@ -16,6 +16,12 @@ export class LayoutManager {
     /** @type {ReportBuilder} */
     #report;
 
+
+    /** @type {boolean} */
+    #shouldScroll = false;
+    /** @type {number} */
+    #mouseY = 0;
+
     /**
      * @param {HTMLElement} parent 
      */
@@ -84,9 +90,12 @@ export class LayoutManager {
     #attachGlobalEvents() {
         this.#handleMenuClick = this.#handleMenuClick.bind(this);
         this.#handleScroll = this.#handleScroll.bind(this);
+        this.#handleMouseMove = this.#handleMouseMove.bind(this);
 
         document.addEventListener('click', this.#handleMenuClick);
         document.addEventListener('scroll', this.#handleScroll);
+        document.addEventListener('mousemove', this.#handleMouseMove);
+        document.addEventListener('drag', this.#handleMouseMove);
         // document.removeEventListener('load', this.#handleLoad);
     }
 
@@ -202,9 +211,44 @@ export class LayoutManager {
         return group;
     }
 
+    /**
+     * @param {MouseEvent} event 
+     */
+    #handleMouseMove = ({ clientY }) => {
+        this.#mouseY = clientY;
+    }
+
+    /**
+     * @param {boolean} force 
+     */
+    toggleScrolling(force = !this.#autoScroll) {
+        let lastState = this.#shouldScroll;
+        this.#shouldScroll = force;
+        if (this.#shouldScroll && !lastState)
+            this.#autoScroll();
+    }
+
+    #autoScroll() {
+        if (!this.#shouldScroll) return;
+        let scrollDir = 0;
+        const topThreshold = 80 + /* navbar */ 88;
+        const bottomThreshold = 80;
+
+        const { top, bottom } = this.#parent.getBoundingClientRect();
+
+        if (this.#mouseY < top + topThreshold) scrollDir = -1;
+        else if (this.#mouseY > bottom - bottomThreshold) scrollDir = 1;
+        else scrollDir = 0;
+
+        this.#parent.scrollTop += scrollDir * 12;
+        requestAnimationFrame(() => this.#autoScroll());
+    }
+
     destroy() {
         document.removeEventListener('click', this.#handleMenuClick);
         document.removeEventListener('scroll', this.#handleScroll);
+        document.removeEventListener('mousemove', this.#handleMouseMove);
+        document.removeEventListener('drag', this.#handleMouseMove);
         document.removeEventListener('load', this.#handleLoad);
     }
 

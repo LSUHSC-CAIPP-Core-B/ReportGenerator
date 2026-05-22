@@ -69,6 +69,14 @@ export class ReportBuilder {
     }
 
     /**
+     * @param {boolean} force 
+     */
+    toggleFrames(force = null) {
+        if (force == null) force = document.body.classList.contains('local');
+        document.body.classList.toggle('local', !force);
+    }
+
+    /**
      * @param {Object} options
      * @param {string} options.title
      * @param {any[]} options.elements
@@ -80,11 +88,11 @@ export class ReportBuilder {
     }
 
     addElementToGroup(groupId, options) {
-        return this.elements.add(groupId, options);
+        return this.#elements.addElementToGroup(groupId, options);
     }
 
     destroy() {
-        this.dragdrop.destroy();
-        this.layout.destroy();
+        this.#dragdrop.destroy();
+        this.#layout.destroy();
     }
 }

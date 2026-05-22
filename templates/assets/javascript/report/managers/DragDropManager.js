@@ -1,10 +1,7 @@
 import { ReportBuilder } from "../ReportBuilder.js";
-import { isDescendant } from "../utils/groupTree.js";
+import { isDescendant, iterateGroups } from "../utils/groupTree.js";
 
 export class DragDropManager {
-
-    /** @type {number} */
-    #insertIndex = null;
 
     /** @type {ReportBuilder} */
     #report;
@@ -23,62 +20,89 @@ export class DragDropManager {
         const groupManager = this.#report.getGroupManager();
         const insertManager = this.#report.getPendingInsertManager();
         const elementManager = this.#report.getElementManager();
-        const { menuEntry: entry, content, id } = groupManager.getGroup(groupId);
+        const layoutManager = this.#report.getLayoutManager();
 
-        entry.addEventListener('dragstart', event => {
-            event.dataTransfer.setData('text/group-id', id);
+        const groupRenderer = groupManager.getRenderer();
+
+        const { menuEntry: menu, content: group } = groupManager.getGroup(groupId);
+
+        menu.addEventListener('dragstart', event => {
+            event.dataTransfer.setData('text/group-id', groupId);
+            this.#report.toggleFrames(false);
         });
 
-        entry.addEventListener('dragover', event => {
+        group.addEventListener('dragstart', event => {
+            layoutManager.toggleScrolling(true);
+            this.#report.toggleFrames(false);
+        });
+
+        menu.addEventListener('dragend', event => {
+            this.#report.toggleFrames(true);
+        });
+
+        group.addEventListener('dragend', event => {
+            layoutManager.toggleScrolling(false);
+            this.#report.toggleFrames(true);
+        });
+
+        menu.addEventListener('dragover', event => {
             event.preventDefault();
-            content.classList.add('drag-hover');
+            groupRenderer.toggleDragEffect(groupId, true);
         });
 
-        content.addEventListener('dragover', event => {
+        group.addEventListener('dragover', event => {
             event.preventDefault();
+            groupRenderer.toggleDragEffect(groupId, true);
 
-            const elementId = event.dataTransfer.getData('text/element-id');
-            if (!elementId) return;
 
-            const children = [ ...content.querySelectorAll('.b-element')];
-            this.#insertIndex = children.length;
+            // const elementId = event.dataTransfer.getData('text/element-id');
+            // if (!elementId) return;
 
-            for (let i = 0; i < children.length; i++) {
-                const child = children[i];
+            // const children = [ ...group.querySelectorAll('.b-element')];
+            // this.#insertIndex = children.length;
 
-                if (child.getAttribute('aria-identifier') === elementId)
-                    continue;
+            // for (let i = 0; i < children.length; i++) {
+            //     const child = children[i];
 
-                const rect = child.getBoundingClientRect();
-                const midpoint = rect.top + rect.height / 2;
+            //     if (child.getAttribute('aria-identifier') === elementId)
+            //         continue;
 
-                if (event.clientY < midpoint) {
-                    this.#insertIndex = i;
-                    break;
-                }
-            }
+            //     const rect = child.getBoundingClientRect();
+            //     const midpoint = rect.top + rect.height / 2;
 
-            insertManager.setInsertMarker(id, this.#insertIndex);
+            //     if (event.clientY < midpoint) {
+            //         this.#insertIndex = i;
+            //         break;
+            //     }
+            // }
+
+            // insertManager.setInsertMarker(groupId, this.#insertIndex);
         });
 
 
-        entry.addEventListener('dragleave', (event) => {
-            if (!content.contains(event.relatedTarget))
+        menu.addEventListener('dragleave', (event) => {
+            if (!group.contains(event.relatedTarget))
                 insertManager.removeInsertMarker();
+            groupRenderer.toggleDragEffect(groupId, false);
         });
 
-        entry.addEventListener('drop', event => {
+         group.addEventListener('dragleave', event => {
             event.preventDefault();
-            content.classList.remove('drag-hover');
+            groupRenderer.toggleDragEffect(groupId, false);
+        });
+
+        menu.addEventListener('drop', event => {
+            event.preventDefault();
+            groupRenderer.toggleDragEffect(groupId, false);
 
             const elementId = event.dataTransfer.getData('text/element-id');
             const sourceGroupId = event.dataTransfer.getData('text/source-group-id');
 
             if (elementId && sourceGroupId) {
                 const targetGroupId = groupId;
-                const insertIndex = this.#insertIndex ?? 0;
+                // const insertIndex = this.#insertIndex ?? 0;
 
-                elementManager.moveElementToGroup(elementId, sourceGroupId, targetGroupId, insertIndex);
+                elementManager.moveElementToGroup(elementId, sourceGroupId, targetGroupId);
                 insertManager.removeInsertMarker();
                 return;
             }
@@ -88,7 +112,7 @@ export class DragDropManager {
             if (!sourceId || sourceId === targetId) return;
             if (isDescendant(groupManager, sourceId, targetId)) return;
 
-            const rect = entry.getBoundingClientRect();
+            const rect = menu.getBoundingClientRect();
             const offsetY = event.clientY - rect.top;
             const ratio = offsetY / rect.height;
 
@@ -99,16 +123,40 @@ export class DragDropManager {
             groupManager.moveGroup(sourceId, targetId, position);
         });
 
-        content.addEventListener('drop', event => {
+        group.addEventListener('drop', event => {
             event.preventDefault();
+            groupRenderer.toggleDragEffect(groupId, false);
+            layoutManager.toggleScrolling(false);
 
             const elementId = event.dataTransfer.getData('text/element-id');
             const sourceGroupId = event.dataTransfer.getData('text/source-group-id');
             if (!elementId || !sourceGroupId) return;
+            
+            const { elements: children } =  groupManager.getGroup(groupId);
 
-            const targetGroupId = groupId;
-            const insertIndex = this.#insertIndex ?? 0;
-            elementManager.moveElementToGroup(elementId, sourceGroupId, targetGroupId, insertIndex);
+            const { clientY: mouseY } = event;
+
+            for (let index = 0; index < children.length; index++) {
+                const { node: child } = children[index];
+                /** @type { DOMRect } */
+                const { top, bottom, height, y } = child.getBoundingClientRect();
+                if (child.getAttribute('aria-identifier') === elementId) continue;
+                
+                /** 2 * 5rem = 80px */
+                const selectionSize = Math.min(height / 2, 80);
+
+                const outOfBounds = (mouseY < top) || (mouseY > bottom);
+                const withinTop = mouseY <= top + selectionSize;
+                const withinBottom = mouseY > bottom - selectionSize;
+
+                if ( outOfBounds ) continue;
+                else if ( withinTop || withinBottom )
+                    elementManager.moveElementToGroup(elementId, sourceGroupId, groupId, index + withinBottom);
+                break;
+            }
+
+            // const insertIndex = this.#insertIndex ?? 0;
+            // elementManager.moveElementToGroup(elementId, sourceGroupId, groupId, insertIndex);
 
             insertManager.removeInsertMarker();
         });
@@ -116,23 +164,43 @@ export class DragDropManager {
 
     /**
      * @param {string} elementId 
-     * @param {string} groupId 
      */
-    attachElementEvents(elementId, groupId) {
+    attachElementEvents(elementId) {
+        const groupManager = this.#report.getGroupManager();
         const elementManager = this.#report.getElementManager();
-        const { node: element } = elementManager.get(elementId);
+        const elementRenderer = elementManager.getRenderer();
+
+        const { node: element } = elementManager.getElement(elementId);
+
+        element.addEventListener('dragover', event => {
+            elementRenderer.toggleInsertionOverlay(elementId, true);
+        });
+
+        element.addEventListener('dragleave', event => {
+            elementRenderer.toggleInsertionOverlay(elementId, false);
+        });
 
         element.addEventListener('dragstart', event => {
-            element.classList.add('dragging');
+            let groupId = null;
+
+            iterateGroups(groupManager, 0, ({ identifier, elements }) => {
+                const inGroup = elements.some(({ identifier }) => identifier === elementId);
+                if (!inGroup) return true;
+                groupId = identifier;
+                return false;
+            });
+
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/element-id', elementId);
             event.dataTransfer.setData('text/source-group-id', groupId);
+            elementRenderer.toggleDragEffect(elementId, true);
+            elementRenderer.toggleOverlay(true);
         });
 
         element.addEventListener('dragend', () => {
-            element.classList.remove('dragging');
+            elementRenderer.toggleDragEffect(elementId, false);
+            elementRenderer.toggleOverlay(false);
             // insertManager.removeInsertMarker();
         });
     }
-
 }
