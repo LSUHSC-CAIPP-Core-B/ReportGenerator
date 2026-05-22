@@ -266,23 +266,140 @@ body {
     width: 100%;
     overflow: hidden;
     flex-direction: column;
+    position: relative;
+
+    &[dragging="true"] {
+        /* padding: 1rem; */
+        background-color: white;
+        /* border: 1px solid black; */
+        border-bottom: 1px solid black;
+        cursor: move;
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        &.dragging {
+            opacity: 50%;
+        }
+    }
+
+    &:not(.collapsed) .desc-block,
+    &.dragging .desc-block {
+        display: none;
+    }
+
+    & .desc-block {
+        display: block;
+        width: 100%;
+        height: 100%;
+        backdrop-filter: blur(2px);
+        top: 0;
+        left: 0;
+
+        background-color: #9696963d;
+        /* opacity: 70%; */
+
+        position: absolute;
+
+        .desc-icon, .desc-text {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+
+            transform: translate(-50%, -50%);
+            color: #969696;
+        }
+
+        .desc-icon {
+            font-size: 10rem;
+            font-weight: 900;
+            color: #96969620;
+        }
+
+        &::after {
+            content: '';
+            display: block;
+            width: 100%;
+            height: 100%;
+
+            position: absolute;
+            bottom: 0;
+
+            --size: 40px;
+            --svg: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%0A%3E%3Cdefs%3E%3ClinearGradient id='crosshair'%3E%3Cstop offset='0%25' stop-color='black' /%3E%3Cstop offset='40%25' stop-color='transparent' /%3E%3Cstop offset='60%25' stop-color='transparent' /%3E%3Cstop offset='100%25' stop-color='black' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='40' height='1' x='0' y='39' fill='url(%23crosshair)' /%3E%3Crect width='40' height='1' x='0' y='0' fill='url(%23crosshair)' transform='translate(39, 0) rotate(90)' /%3E%3C/svg%3E");
+            
+            background: radial-gradient(
+                circle at center,
+                transparent 0 120px,
+                #969696 240px
+            );
+
+            -webkit-mask: var(--svg);
+            mask: var(--svg);
+
+            -webkit-mask-repeat: repeat;
+            mask-repeat: repeat;
+
+            -webkit-mask-size: var(--size) var(--size); /* tile size */
+            mask-size: var(--size) var(--size);
+
+            -webkit-mask-position: center;
+            mask-position: center;
+
+            /* background-color: #0b1016; */
+        }
+    }
+
+
+
+    &:not(.hovering) .insertion {
+        display: none;
+    }
+
+    & .insertion {
+        display: block;
+        width: 100%;
+        height: 50%;
+        position: absolute;
+        max-height: 5rem;
+
+        &::after {
+            position: absolute;
+
+            top: 50%;
+            left: 50%;
+
+            transform: translate(-50%, -50%);
+
+            margin: auto 0;
+            display: block;
+        }
+
+        &.before{
+            top: 0;
+            color: #da3737;
+            background-color: #da37373d;
+
+            &::after{
+                content: 'Insert Before';
+            }
+        }
+
+        &.after{
+            bottom: 0px;
+            color: #3954db;
+            background-color: #3954db3d;
+
+            &::after{
+                content: 'Insert After';
+            }
+        }
+    }
+    
 }
 
-.b-element[draggable="true"] {
-    /* padding: 1rem; */
-    background-color: white;
-    /* border: 1px solid black; */
-    border-bottom: 1px solid black;
-    cursor: move;
-}
 
-.b-element[draggable="true"]:last-child {
-    border-bottom: none;
-}
-
-.b-element[draggable="true"].dragging {
-    opacity: 50%;
-}
 
 .b-description {
     width: 100%;
@@ -294,38 +411,6 @@ body {
         background: rgba(74,144,226,0.08);
         padding: 4px 6px;
     }
-}
-
-.format-toolbar {
-    position: absolute;
-
-    display: flex;
-    gap: 6px;
-
-    background: #111;
-    color: white;
-
-    padding: 6px 8px;
-
-    border-radius: 8px;
-
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-
-    z-index: 9999;
-}
-
-.format-toolbar button {
-    background: transparent;
-    border: none;
-    color: white;
-    cursor: pointer;
-
-    padding: 4px 6px;
-    border-radius: 4px;
-}
-
-.format-toolbar button:hover {
-    background: rgba(255,255,255,0.15);
 }
 
 .b-frame {

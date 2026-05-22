@@ -20,11 +20,32 @@ export class ElementFactory {
         this.#report = report;
     }
 
-    #createElementShell(identifier) {
+    #createElementShell({ identifier, icon = 'group', details = 'Element Group' }) {
         const element = document.createElement('div');
         element.classList.add('b-element');
         element.setAttribute('aria-identifier', identifier);
         element.draggable = true;
+
+        const descriptionEl = document.createElement('span');
+        descriptionEl.classList.add('desc-block');
+        element.appendChild(descriptionEl);
+
+        const iconEl = document.createElement('i');
+        iconEl.classList.add('desc-icon', `icon-${icon}`);
+        descriptionEl.appendChild(iconEl);
+        
+        const textEl = document.createElement('p');
+        textEl.classList.add('desc-text');
+        textEl.innerText = details;
+        descriptionEl.appendChild(textEl);
+
+        const beforeEl = document.createElement('span');
+        beforeEl.classList.add('insertion', 'before');
+        descriptionEl.appendChild(beforeEl);
+
+        const afterEl = document.createElement('span');
+        afterEl.classList.add('insertion', 'after');
+        descriptionEl.appendChild(afterEl);
 
         return element;
     }
@@ -62,13 +83,13 @@ export class ElementFactory {
      * @param {boolean} edit 
      */
     createDescription({ description = 'Sample description', identifier = createIdentifier() }, edit = false) {
-        const shell = this.#createElementShell(identifier);
+        const shell = this.#createElementShell({ identifier, icon: 'text', details: 'Description' });
         const mount = document.createElement("div");
         mount.classList.add("pm-mount");
         shell.appendChild(mount);
 
         const element = new ReportElement({
-            id: identifier,
+            identifier,
             type: "description",
             node: shell,
             data: { description }
@@ -95,14 +116,14 @@ export class ElementFactory {
         if (!file) return null;
         const project = this.#report.getProjectId();
 
-        const shell = this.#createElementShell(identifier);
+        const shell = this.#createElementShell({ identifier, icon: 'image' });
         const image = document.createElement('img');
         image.classList.add('b-image');
         image.src = `database/${project}/${file}/$`;
         shell.appendChild(image);
 
         const element = new ReportElement({
-            id: identifier,
+            identifier,
             type: 'image',
             node: shell,
             data: { file, description }
@@ -126,7 +147,7 @@ export class ElementFactory {
         if (!file) return null;
         const project = this.#report.getProjectId();
 
-        const shell = this.#createElementShell(identifier);
+        const shell = this.#createElementShell({ identifier, icon: 'pointer' });
         const frame = document.createElement('iframe');
         frame.classList.add('b-frame');
         frame.src = `database/${project}/${file}/$`;
@@ -135,7 +156,7 @@ export class ElementFactory {
         FrameHandler.handle(frame);
 
         return new ReportElement({
-            id: identifier,
+            identifier,
             type: 'frame',
             node: shell,
             data: { file }
@@ -150,7 +171,7 @@ export class ElementFactory {
         if (!file) return null;
         const project = this.#report.getProjectId();
 
-        const shell = this.#createElementShell(identifier);
+        const shell = this.#createElementShell({ identifier, icon: 'table-2' });
         const table = document.createElement('table');
         table.classList.add('b-table');
 
@@ -165,7 +186,7 @@ export class ElementFactory {
         shell.appendChild(table);
 
         return new ReportElement({
-            id: identifier,
+            identifier,
             type: 'table',
             node: shell,
             data: { file, type, extras }

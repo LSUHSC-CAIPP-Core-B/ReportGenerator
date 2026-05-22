@@ -59,8 +59,8 @@ export function isDescendant(manager, parentId, childId) {
 export function iterateGroups(manager, startIndex, callback) {
     const size = manager.getGroupOrderSize();
     for (let index = startIndex; index < size; index++) {
-        const id = manager.getGroupId(index);
-        const group = manager.getGroup(id);
+        const identifier = manager.getGroupId(index);
+        const group = manager.getGroup(identifier);
 
         const breakOut = callback(group, index) === false;
         if (breakOut) break;

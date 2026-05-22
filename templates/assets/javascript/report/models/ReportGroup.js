@@ -2,7 +2,7 @@
 export class ReportGroup {
     /**
      * @param {Object} options
-     * @param {string} options.id
+     * @param {string} options.identifier
      * @param {string} options.title
      * @param {HTMLElement} options.menuEntry
      * @param {HTMLElement} options.content
@@ -10,14 +10,14 @@ export class ReportGroup {
      * @param {number} [options.depth]
      */
     constructor({
-        id,
+        identifier,
         title,
         menuEntry,
         content,
         parentId = null,
         depth = 0
     }) {
-        this.id = id;
+        this.identifier = identifier;
         this.title = title;
 
         this.parentId = parentId;

@@ -1,5 +1,6 @@
 import { ElementFactory } from "../factories/ElementFactory.js";
 import { ReportElement } from "../models/ReportElement.js";
+import { ElementRenderer } from "../renderers/ElementRenderer.js";
 import { ReportBuilder } from "../ReportBuilder.js";
 import { iterateGroups } from "../utils/groupTree.js";
 
@@ -13,6 +14,8 @@ export class ElementManager {
 
     /** @type {ReportBuilder} */
     #report;
+    /** @type {ElementRenderer} */
+    #renderer;
 
     /**
      * @param {ReportBuilder} report
@@ -20,6 +23,7 @@ export class ElementManager {
     constructor(report) {
         this.#report = report;
         this.#elementFactory = new ElementFactory(report);
+        this.#renderer = new ElementRenderer(this);
     }
 
     /**
@@ -37,18 +41,20 @@ export class ElementManager {
      */
     insertElementIntoGroup(groupId, options, index = null, edit = false) {
         const groupManager = this.#report.getGroupManager();
+        const dragDropManager = this.#report.getDragDropManager();
+
         const group = groupManager.getGroup(groupId);
         if (!group) return null;
 
-
         const element = this.#elementFactory.createElementFromType(options, edit);
         if (!element) return null;
+        const { identifier } = element;
 
         if (index == null) index = group.elements.length;
 
         group.elements.splice(index, 0, element);
-        this.#elements.set(element.id, element);
-        this.#attachElementEvents(element, groupId);
+        this.#elements.set(identifier, element);
+        dragDropManager.attachElementEvents(identifier);
 
         const beforeNode = group.content.children[index];
         if (beforeNode) group.content.insertBefore(element.node, beforeNode);
@@ -65,65 +71,68 @@ export class ElementManager {
      */
     moveElementToGroup(elementId, sourceGroupId, targetGroupId, targetIndex = 0) {
         const groupManager = this.#report.getGroupManager();
+        const dragDropManager = this.#report.getDragDropManager();
+
         const sourceGroup = groupManager.getGroup(sourceGroupId);
         const targetGroup = groupManager.getGroup(targetGroupId);
-        const element = this.#elements.get(elementId);
 
-        if (!sourceGroup || !targetGroup || !element) return;
-
+        if (!sourceGroup || !targetGroup) return;
         const sourceIndex = sourceGroup.elements.findIndex(
-            el => el.id === elementId
+            ({identifier}) => identifier === elementId
         );
 
-        if (sourceIndex === -1) return;
-        sourceGroup.elements.splice(sourceIndex, 1);
-
-        if (sourceGroupId === targetGroupId) 
-            if (sourceIndex < targetIndex)
+        if (sourceGroupId === targetGroupId)
+            if (sourceIndex === targetIndex) return;
+            else if (sourceIndex < targetIndex)
                 targetIndex--;
-
+        
+        /** @type {ReportElement} */
+        const element = sourceGroup.elements.splice(sourceIndex, 1)[0];
+        /** @type {ReportElement} */
+        const target = targetGroup.elements.slice(targetIndex)[0];
         targetGroup.elements.splice(targetIndex, 0, element);
-
-        const children = [...targetGroup.content.querySelectorAll('.b-element')];
-
-        const beforeNode = children[targetIndex];
-        if (beforeNode) targetGroup.content.insertBefore(element.node, beforeNode);
+        
+        if (target) targetGroup.content.insertBefore(element.node, target.node);
         else targetGroup.content.appendChild(element.node);
-
-        this.#attachElementEvents(element, targetGroupId);
     }
 
     /**
-     * @param {ReportElement} element 
-     * @param {string} groupId 
+     * Get element from id
+     * @param {string} elementId 
+     * @returns {ReportElement}
      */
-    #attachElementEvents({ node: element, id: elementId }, groupId) {
-        element.addEventListener('dragstart', event => {
-            element.classList.add('dragging');
-            event.dataTransfer.effectAllowed = 'move';
-            event.dataTransfer.setData('text/element-id', elementId);
-            event.dataTransfer.setData('text/source-group-id', groupId);
-        });
+    getElement(elementId) {
+        return this.#elements?.get(elementId);
+    }
 
-        element.addEventListener('dragend', () => {
-            element.classList.remove('dragging');
-            // insertManager.removeInsertMarker();
-        });
+    /**
+     * Check if element exists from id
+     * @param {string} elementId 
+     * @returns {boolean}
+     */
+    hasElement(elementId) {
+        return this.#elements?.has(elementId);
+    }
+
+    /**
+     * @param {(element: ReportElement) => void} callback
+     */
+    iterateElements(callback) {
+        for (const element of this.#elements.values())
+            callback(element);
     }
 
     toJSON() {
         const project = this.#report.getProjectId();
         const groups = [];
 
-        iterateGroups(this.#report.getGroupManager(), 0, ({id, title, elements}) => {
-            groups.push({
-                identifier: id,
-                title: title,
-                elements: elements.map(({ id: identifier, type, data }) => ({ identifier, type, data }))
-            });
-        });
+        iterateGroups(this.#report.getGroupManager(), 0, (group) => groups.push(group));
 
         return { project, groups };
+    }
+
+    getRenderer() {
+        return this.#renderer;
     }
 
 }

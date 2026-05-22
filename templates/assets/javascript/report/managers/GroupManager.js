@@ -1,4 +1,5 @@
 import { ReportGroup } from '../models/ReportGroup.js';
+import { GroupRenderer } from '../renderers/GroupRenderer.js';
 import { ReportBuilder } from '../ReportBuilder.js';
 import { getDescendants, getSubtree } from '../utils/groupTree.js';
 import { createIdentifier } from '../utils/identifiers.js';
@@ -12,12 +13,15 @@ export class GroupManager {
 
     /** @type { ReportBuilder } */
     #report
+    /** @type { GroupRenderer } */
+    #renderer
 
     /**
      * @param {ReportBuilder} report
      */
     constructor(report) {
         this.#report = report;
+        this.#renderer = new GroupRenderer(this);
     }
 
 
@@ -45,7 +49,7 @@ export class GroupManager {
                 ?.classList.toggle('collapsable', true);
 
         const group = new ReportGroup({
-            id: identifier,
+            identifier,
             title,
             menuEntry,
             content,
@@ -75,7 +79,7 @@ export class GroupManager {
         const movingSubtree = this.getSubtree(groupId);
         if (!movingSubtree.length) return;
 
-        const movingIds = movingSubtree.map(g => g.id);
+        const movingIds = movingSubtree.map(({identifier}) => identifier);
         // Prevent dropping into own subtree
         if (movingIds.includes(targetId)) return;
 
@@ -84,10 +88,10 @@ export class GroupManager {
         if (!root || !target) return;
 
         this.#groupOrder = this.#groupOrder.filter(
-            id => !movingIds.includes(id)
+            identifier => !movingIds.includes(identifier)
         );
 
-        if (position === 'inside') root.parentId = target.id;
+        if (position === 'inside') root.parentId = target.identifier;
         else root.parentId = target.parentId;
 
         this.#updateSubtreeDepths(groupId);
@@ -141,21 +145,21 @@ export class GroupManager {
 
     #rebuildGroupDOM() {
         const GROUPS = [...this.#groups.values()]
-            .sort((a, b) => b.parentId?.localeCompare(a.id));
+            .sort((a, b) => b.parentId?.localeCompare(a.identifier));
 
         GROUPS.forEach((group, index, arr) => {
-            const parent = arr.find(parent => parent.id === group.parentId);
+            const parent = arr.find(parent => parent.identifier === group.parentId);
             group.depth = (parent?.depth ?? -1) + 1;
         });
 
         const layoutManager = this.#report.getLayoutManager();
         layoutManager.organize(this.#groupOrder);
 
-        for (const id of this.#groupOrder) {
-            const group = this.#groups.get(id);
+        for (const identifier of this.#groupOrder) {
+            const group = this.#groups.get(identifier);
             if (!group) continue;
 
-            const hasChildren = GROUPS.some(g => g.parentId === id);
+            const hasChildren = GROUPS.some(g => g.parentId === identifier);
             const { depth, menuEntry: entry} = group;
 
             entry.classList.toggle('collapsable', hasChildren);
@@ -176,7 +180,7 @@ export class GroupManager {
     }
 
     /**
-     * Get group from id
+     * Get group from identifier
      * @param {string} groupId 
      * @returns {ReportGroup}
      */
@@ -185,7 +189,7 @@ export class GroupManager {
     }
 
     /**
-     * Get group from id
+     * Check if group exists from identifier
      * @param {string} groupId 
      * @returns {boolean}
      */
@@ -194,7 +198,7 @@ export class GroupManager {
     }
 
     /**
-     * Get group from index.
+     * Get group identifier from index.
      * A negative index will count back from the last item.
      * @param {number} index 
      * @returns {string}
@@ -209,6 +213,10 @@ export class GroupManager {
      */
     getGroupOrderSize() {
         return this.#groupOrder?.length ?? 0;
+    }
+
+    getRenderer() {
+        return this.#renderer;
     }
 
 }
