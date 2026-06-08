@@ -96,8 +96,9 @@ const elementTagOptions: TagImplOptions = {
     _emitter: Emitter,
     _hash: Record<string, any>,
   ) {
+    let name = '';
     if (!evalRenderCondition(this, ctx)) return '';
-    const name = this.elementName.value(ctx);
+    name = yield this.elementName.value(ctx);
     if (!name) return '';
 
     const self = 'nocontent' in this.attributes;

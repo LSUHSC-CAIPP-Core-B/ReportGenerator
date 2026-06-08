@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tree = constructTree({ description, groups: PATH_GROUPS, icon, label });
 
       tree.callback = ({ id: file, type }) => {
-        insertManager.beginPendingElement({ file, type });
+        insertManager.beginPendingElement({ data: { file, type }, type: key });
       };
 
       commandPalette.addAction(tree);
