@@ -1,196 +1,184 @@
-import { EditorToolbar } from "../../editor/editorToolbar.js";
-import { ReportElement } from "../models/ReportElement.js";
-import { createIdentifier } from "../utils/identifiers.js";
-import { createProseMirrorEditor } from "../../editor/prosemirrorEditor.js";
-import { FrameHandler } from "../../iframe.js";
-import { TableHandler } from "../../table.js";
-import { ReportBuilder } from "../ReportBuilder.js";
+import { EditorToolbar } from '../../editor/editorToolbar.js';
+import { createProseMirrorEditor } from '../../editor/prosemirrorEditor.js';
+import { handle } from '../../iframe.js';
+import { TableHandler } from '../../table.js';
+import { ReportElement } from '../models/ReportElement.js';
+import { ReportBuilder } from '../ReportBuilder.js';
+import { createIdentifier } from '../utils/identifiers.js';
 
 export class ElementFactory {
+  #toolbar = new EditorToolbar();
 
-    #toolbar = new EditorToolbar();
+  /** @type {ReportBuilder} */
+  #report;
 
-    /** @type {ReportBuilder} */
-    #report;
+  /**
+   * @param {ReportBuilder} report
+   */
+  constructor(report) {
+    this.#report = report;
+  }
 
-    /**
-     * @param {ReportBuilder} report 
-     */
-    constructor(report) {
-        this.#report = report;
+  #createElementShell({ identifier, icon = 'group', details = 'Element Group' }) {
+    const element = document.createElement('div');
+    element.classList.add('b-element');
+    element.setAttribute('aria-identifier', identifier);
+    element.draggable = true;
+
+    const descriptionEl = document.createElement('span');
+    descriptionEl.classList.add('desc-block');
+    element.appendChild(descriptionEl);
+
+    const iconEl = document.createElement('i');
+    iconEl.classList.add('desc-icon', `icon-${icon}`);
+    descriptionEl.appendChild(iconEl);
+
+    const textEl = document.createElement('p');
+    textEl.classList.add('desc-text');
+    textEl.innerText = details;
+    descriptionEl.appendChild(textEl);
+
+    const beforeEl = document.createElement('span');
+    beforeEl.classList.add('insertion', 'before');
+    descriptionEl.appendChild(beforeEl);
+
+    const afterEl = document.createElement('span');
+    afterEl.classList.add('insertion', 'after');
+    descriptionEl.appendChild(afterEl);
+
+    return element;
+  }
+
+  createElementFromType(options) {
+    const { type } = options;
+
+    if (type === 'description') return this.createDescription(options);
+    else if (type === 'frame') return this.createFrameElement(options);
+    else if (type === 'image') return this.createImageElement(options);
+    else if (type === 'table') return this.createTableElement(options);
+
+    return this.createDescription({
+      description: `Unsupported element type: ${type}`,
+    });
+  }
+
+  /**
+   * @param {Object} options
+   */
+  createDescription(options = {}) {
+    const { description = 'Sample description', identifier = createIdentifier() } = options;
+    const shell = this.#createElementShell({ details: 'Description', icon: 'text', identifier });
+    const mount = document.createElement('div');
+    mount.classList.add('pm-mount');
+    shell.appendChild(mount);
+
+    const element = new ReportElement({
+      data: { description },
+      identifier,
+      node: shell,
+      type: 'description',
+    });
+
+    const { view } = createProseMirrorEditor({
+      content: description,
+      mount,
+      onChange: (html) => {
+        element.data.description = html;
+      },
+    });
+
+    this.#toolbar.bind(view);
+
+    return element;
+  }
+
+  /**
+   * @param {Object} options
+   */
+  createImageElement(options = {}) {
+    const { identifier = createIdentifier(), data } = options;
+    const { file, description } = data;
+
+    if (!file) return null;
+    const project = this.#report.getProjectId();
+
+    const shell = this.#createElementShell({ icon: 'image', identifier });
+    const image = document.createElement('img');
+    image.classList.add('b-image');
+    image.src = `database/${project}/${file}/$`;
+    shell.appendChild(image);
+
+    const element = new ReportElement({
+      data: { description, file },
+      identifier,
+      node: shell,
+      type: 'image',
+    });
+
+    if (description) {
+      const desc = document.createElement('p');
+      desc.classList.add('b-description');
+      desc.innerText = description;
+      shell.appendChild(desc);
     }
 
-    #createElementShell({ identifier, icon = 'group', details = 'Element Group' }) {
-        const element = document.createElement('div');
-        element.classList.add('b-element');
-        element.setAttribute('aria-identifier', identifier);
-        element.draggable = true;
+    return element;
+  }
 
-        const descriptionEl = document.createElement('span');
-        descriptionEl.classList.add('desc-block');
-        element.appendChild(descriptionEl);
+  /**
+   * @param {Object} options
+   */
+  createFrameElement(options = {}) {
+    const { identifier = createIdentifier(), data = {} } = options;
+    const { file } = data;
 
-        const iconEl = document.createElement('i');
-        iconEl.classList.add('desc-icon', `icon-${icon}`);
-        descriptionEl.appendChild(iconEl);
-        
-        const textEl = document.createElement('p');
-        textEl.classList.add('desc-text');
-        textEl.innerText = details;
-        descriptionEl.appendChild(textEl);
+    if (!file) return null;
+    const project = this.#report.getProjectId();
 
-        const beforeEl = document.createElement('span');
-        beforeEl.classList.add('insertion', 'before');
-        descriptionEl.appendChild(beforeEl);
+    const shell = this.#createElementShell({ icon: 'pointer', identifier });
+    const frame = document.createElement('iframe');
+    frame.classList.add('b-frame');
+    frame.src = `database/${project}/${file}/$`;
+    shell.appendChild(frame);
 
-        const afterEl = document.createElement('span');
-        afterEl.classList.add('insertion', 'after');
-        descriptionEl.appendChild(afterEl);
+    handle(frame);
 
-        return element;
-    }
+    return new ReportElement({
+      data: { file },
+      identifier,
+      node: shell,
+      type: 'frame',
+    });
+  }
 
-    createElementFromType(options, edit = false) {
-        const { type } = options;
+  /**
+   * @param {Object} options
+   */
+  createTableElement(options = {}) {
+    const { identifier = createIdentifier(), data = {} } = options;
+    const { type, file, extras } = data;
+    if (!file) return null;
+    const project = this.#report.getProjectId();
 
-        switch (type) {
-            case 'description':
-                return this.createDescription(options, edit);
+    const shell = this.#createElementShell({ icon: 'table-2', identifier });
+    const table = document.createElement('table');
+    table.classList.add('b-table');
 
-            case 'html':
-            case 'pdf':
-                return this.createFrameElement(options, edit);
+    table.setAttribute('aria-table', `database/${project}/${file}/$`);
+    table.setAttribute('aria-filetype', type);
+    table.toggleAttribute('aria-row-index', extras?.index === true);
 
-            case 'png':
-            case 'svg':
-            case 'jpeg':
-            case 'jpg':
-            case 'tiff':
-            case 'tif':
-                return this.createImageElement(options, edit);
+    if (Array.isArray(extras?.column_order))
+      table.setAttribute('aria-column-order', extras.column_order.join(','));
 
-            case 'csv':
-                return this.createTableElement(options, edit);
-        }
+    TableHandler.fromElement(table);
+    shell.appendChild(table);
 
-        return this.createDescription({
-            description: `Unsupported element type: ${type}`
-        });
-    }
-
-    /**
-     * @param {Object} options
-     * @param {boolean} edit 
-     */
-    createDescription({ description = 'Sample description', identifier = createIdentifier() }, edit = false) {
-        const shell = this.#createElementShell({ identifier, icon: 'text', details: 'Description' });
-        const mount = document.createElement("div");
-        mount.classList.add("pm-mount");
-        shell.appendChild(mount);
-
-        const element = new ReportElement({
-            identifier,
-            type: "description",
-            node: shell,
-            data: { description }
-        });
-
-        const { view } = createProseMirrorEditor({
-            mount,
-            content: description,
-            onChange: (html) => {
-                element.data.description = html;
-            }
-        });
-
-        this.#toolbar.bind(view);
-
-        return element;
-    }
-
-    /**
-     * @param {Object} options
-     * @param {boolean} edit 
-     */
-    createImageElement({ file, description, identifier = createIdentifier() }, edit = false) {
-        if (!file) return null;
-        const project = this.#report.getProjectId();
-
-        const shell = this.#createElementShell({ identifier, icon: 'image' });
-        const image = document.createElement('img');
-        image.classList.add('b-image');
-        image.src = `database/${project}/${file}/$`;
-        shell.appendChild(image);
-
-        const element = new ReportElement({
-            identifier,
-            type: 'image',
-            node: shell,
-            data: { file, description }
-        });
-
-        if (description) {
-            const desc = document.createElement('p');
-            desc.classList.add('b-description');
-            desc.innerText = description;
-            shell.appendChild(desc);
-        }
-
-        return element;
-    }
-
-    /**
-     * @param {Object} options
-     * @param {boolean} edit 
-     */
-    createFrameElement({ file, identifier = createIdentifier() }, edit = false) {
-        if (!file) return null;
-        const project = this.#report.getProjectId();
-
-        const shell = this.#createElementShell({ identifier, icon: 'pointer' });
-        const frame = document.createElement('iframe');
-        frame.classList.add('b-frame');
-        frame.src = `database/${project}/${file}/$`;
-        shell.appendChild(frame);
-
-        FrameHandler.handle(frame);
-
-        return new ReportElement({
-            identifier,
-            type: 'frame',
-            node: shell,
-            data: { file }
-        });
-    }
-
-    /**
-     * @param {Object} options
-     * @param {boolean} edit 
-     */
-    createTableElement({ file, type, extras, identifier = createIdentifier() }, edit = false) {
-        if (!file) return null;
-        const project = this.#report.getProjectId();
-
-        const shell = this.#createElementShell({ identifier, icon: 'table-2' });
-        const table = document.createElement('table');
-        table.classList.add('b-table');
-
-        table.setAttribute('aria-table', `database/${project}/${file}/$`);
-        table.setAttribute('aria-filetype', type);
-        table.toggleAttribute('aria-row-index', extras?.index === true);
-
-        if (Array.isArray(extras?.column_order))
-            table.setAttribute('aria-column-order', extras.column_order.join(','));
-        
-        TableHandler.fromElement(table);
-        shell.appendChild(table);
-
-        return new ReportElement({
-            identifier,
-            type: 'table',
-            node: shell,
-            data: { file, type, extras }
-        });
-    }
-
+    return new ReportElement({
+      data: { extras, file, type },
+      identifier,
+      node: shell,
+      type: 'table',
+    });
+  }
 }

@@ -1,33 +1,22 @@
+const observer = new ResizeObserver((entries, _observer) => {
+  /** @type { HTMLIFrameElement } */
+  const frame = entries[0].target;
+  resizeFrame(frame);
+});
 
-export class FrameHandler {
+export function handle(frame) {
+  if (frame.nodeName.toLowerCase() !== 'iframe')
+    throw new Error('FrameHandler only accepts iframe elements');
 
-    static #observer = new ResizeObserver((entries, observer) => {
-        /** @type { HTMLIFrameElement } */
-        const frame = entries[0].target;
-        FrameHandler.#resizeFrame(frame);
-    });
+  observer.observe(frame, { box: 'content-box' });
+  frame.addEventListener('load', (_ev) => resizeFrame(frame));
+}
 
-    /**
-     * @param {HTMLIFrameElement} frame 
-     */
-    static handle(frame) {
-        if (frame.nodeName.toLowerCase() !== 'iframe')
-            throw new Error('FrameHandler only accepts iframe elements');
-    
-        FrameHandler.#observer.observe(frame, { box: "content-box" });
-        frame.addEventListener('load', (ev) => FrameHandler.#resizeFrame(frame));
-    }
+function resizeFrame(frame) {
+  const innerContent = frame?.contentDocument || frame?.contentWindow?.document;
+  const frameBody = innerContent?.body;
 
-    /**
-     * @param {HTMLIFrameElement} frame 
-     */
-    static #resizeFrame(frame) {
-        const innerContent = frame?.contentDocument || frame?.contentWindow?.document;
-        const frameBody = innerContent?.body;
-
-        if (frameBody == null) return;
-        var targetHeight = (frameBody.clientHeight + 30) + 'px';
-        if (frame.height != targetHeight) frame.height = targetHeight;
-    }
-
+  if (frameBody == null) return;
+  var targetHeight = `${frameBody.clientHeight + 30}px`;
+  if (frame.height !== targetHeight) frame.height = targetHeight;
 }

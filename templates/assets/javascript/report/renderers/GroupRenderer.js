@@ -1,31 +1,27 @@
-import { GroupManager } from "../managers/GroupManager.js";
+import { GroupManager } from '../managers/GroupManager.js';
 
 export class GroupRenderer {
+  /** @type {GroupManager} */
+  #manager;
 
+  /**
+   * @param {GroupManager} manager
+   */
+  constructor(manager) {
+    this.#manager = manager;
+  }
 
-    /** @type {GroupManager} */
-    #manager;
+  /**
+   * @param {string} groupId
+   * @param {boolean} force
+   */
+  toggleDragEffect(groupId, force = null) {
+    const group = this.#manager.getGroup(groupId);
+    if (!group) return;
 
-    /**
-     * @param {GroupManager} manager 
-     */
-    constructor(manager) {
-        this.#manager = manager;
-    }
+    const { content } = group;
 
-    /**
-     * @param {string} groupId
-     * @param {boolean} force 
-     */
-    toggleDragEffect(groupId, force = null) {
-        const group = this.#manager.getGroup(groupId);
-        if (!group) return;
-
-        const { content } = group;
-
-        if (force === null) force = !content.classList.contains('drag-hover');
-        content.classList.toggle('drag-hover', force);
-    }
-
-
+    if (force === null) force = !content.classList.contains('drag-hover');
+    content.classList.toggle('drag-hover', force);
+  }
 }

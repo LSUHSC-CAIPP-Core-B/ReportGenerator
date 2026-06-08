@@ -1,255 +1,251 @@
-import { ReportBuilder } from "../ReportBuilder.js";
-import { GroupManager } from "./GroupManager.js";
-import { PendingInsertManager } from "./PendingInsertManager.js";
+import { ReportBuilder } from '../ReportBuilder.js';
 
 export class LayoutManager {
+  /** @type {HTMLElement} */
+  #parent;
 
-    /** @type {HTMLElement} */
-    #parent;
+  /** @type {HTMLElement} */
+  #menu;
 
-    /** @type {HTMLElement} */
-    #menu;
+  /** @type {HTMLElement} */
+  #content;
 
-    /** @type {HTMLElement} */
-    #content;
+  /** @type {ReportBuilder} */
+  #report;
 
-    /** @type {ReportBuilder} */
-    #report;
+  /** @type {boolean} */
+  #shouldScroll = false;
+  /** @type {number} */
+  #mouseY = 0;
 
+  /**
+   * @param {HTMLElement} parent
+   */
+  constructor(report, parent) {
+    this.#report = report;
+    this.#parent = parent;
 
-    /** @type {boolean} */
-    #shouldScroll = false;
-    /** @type {number} */
-    #mouseY = 0;
+    const menuWrapper = document.createElement('div');
+    menuWrapper.classList.add('b-menu' /*, 'js-sticky' */);
+    this.#parent.appendChild(menuWrapper);
 
-    /**
-     * @param {HTMLElement} parent 
-     */
-    constructor(report, parent) {
-        this.#report = report;
-        this.#parent = parent;
+    const title = document.createElement('div');
+    title.classList.add('menu-title');
+    title.innerText = 'Table of Contents';
 
-        const menuWrapper = document.createElement('div');
-        menuWrapper.classList.add('b-menu'/*, 'js-sticky' */);
-        this.#parent.appendChild(menuWrapper);
+    menuWrapper.appendChild(title);
 
-        const title = document.createElement('div');
-        title.classList.add('menu-title');
-        title.innerText = 'Table of Contents';
+    this.#menu = document.createElement('div');
+    this.#menu.classList.add('menu-container');
+    menuWrapper.appendChild(this.#menu);
 
-        menuWrapper.appendChild(title);
+    this.#content = document.createElement('div');
+    this.#content.classList.add('b-content');
+    this.#parent.appendChild(this.#content);
 
-        this.#menu = document.createElement('div');
-        this.#menu.classList.add('menu-container');
-        menuWrapper.appendChild(this.#menu);
+    this.#attachGlobalEvents();
+  }
 
-        this.#content = document.createElement('div');
-        this.#content.classList.add('b-content');
-        this.#parent.appendChild(this.#content);
+  /**
+   * @param {Object} options
+   * @param {string} options.title
+   * @param {string} options.identifier
+   * @param {number} options.depth
+   * @returns { entry: HTMLElement, content: HTMLElement }
+   */
+  create({ title, identifier, depth }) {
+    const entry = this.#createMenuEntry(title, identifier, depth);
+    const content = this.#createGroupContainer(identifier);
 
-        this.#attachGlobalEvents();
+    this.#menu.appendChild(entry);
+    this.#content.appendChild(content);
+
+    return { content, entry };
+  }
+
+  getMenuEntry(identifier) {
+    return this.#menu.querySelector(`.menu-entry[aria-identifier="${identifier}"]`);
+  }
+
+  /**
+   * @param {string[]} entryIds
+   */
+  organize(entryIds) {
+    const menuChildren = entryIds
+      .map((identifier) => this.#menu.querySelector(`.menu-entry[aria-identifier="${identifier}"]`))
+      .filter((val, index, arr) => val && arr.indexOf(val) === index);
+
+    const contentChildren = entryIds
+      .map((identifier) =>
+        this.#content.querySelector(`.b-container[aria-identifier="${identifier}"]`),
+      )
+      .filter((val, index, arr) => val && arr.indexOf(val) === index);
+
+    this.#menu.replaceChildren(...menuChildren);
+    this.#content.replaceChildren(...contentChildren);
+  }
+
+  #attachGlobalEvents() {
+    this.#handleMenuClick = this.#handleMenuClick.bind(this);
+    this.#handleScroll = this.#handleScroll.bind(this);
+    this.#handleMouseMove = this.#handleMouseMove.bind(this);
+
+    document.addEventListener('click', this.#handleMenuClick);
+    document.addEventListener('scroll', this.#handleScroll);
+    document.addEventListener('mousemove', this.#handleMouseMove);
+    document.addEventListener('drag', this.#handleMouseMove);
+    // document.removeEventListener('load', this.#handleLoad);
+  }
+
+  #handleScroll = () => {
+    const navbar = document.querySelector('.b-navbar');
+    if (!navbar) return;
+
+    navbar.classList.toggle('scrolled', window.scrollY > 0);
+  };
+
+  #handleLoad() {
+    const stickyElements = document.querySelectorAll('.js-sticky');
+    const verticalScroll = window.scrollY;
+
+    for (const element of stickyElements) {
+      if (!(element instanceof HTMLElement)) continue;
+
+      const style = window.getComputedStyle(element);
+
+      if (style.position !== 'sticky') element.style.position = 'sticky';
+
+      const parent = element.parentElement;
+      if (!parent) continue;
+
+      const parentStyle = window.getComputedStyle(parent);
+      const parentBorder = parent.getBoundingClientRect();
+      const topPadding = parseInt(parentStyle.paddingTop, 10) || 0;
+      const parentStartY = parentBorder.y + verticalScroll + topPadding;
+      element.style.top = `${parentStartY}px`;
     }
+  }
 
-    /**
-     * @param {Object} options
-     * @param {string} options.title
-     * @param {string} options.identifier
-     * @param {number} options.depth
-     * @returns { entry: HTMLElement, content: HTMLElement }
-     */
-    create({ title, identifier, depth }) {
-        const entry = this.#createMenuEntry(title, identifier, depth);
-        const content = this.#createGroupContainer(identifier);
+  collapseGroup(groupId) {
+    const groupManager = this.#report.getGroupManager();
+    const group = groupManager.getGroup(groupId);
 
-        this.#menu.appendChild(entry);
-        this.#content.appendChild(content);
+    if (!group) return;
 
-        return { entry, content };
-    }
+    group.collapsed = !group.collapsed;
+    group.menuEntry.classList.toggle('collapsed', group.collapsed);
 
-    getMenuEntry(identifier) {
-        return this.#menu.querySelector(`.menu-entry[aria-identifier="${identifier}"]`);
-    }
-
-    /**
-     * @param {string[]} entryIds 
-     */
-    organize(entryIds) {
-        const menuChildren = entryIds.map((identifier) => 
-            this.#menu.querySelector(`.menu-entry[aria-identifier="${identifier}"]`)
-        ).filter((val, index, arr) => val && arr.indexOf(val) === index);
-
-        const contentChildren = entryIds.map((identifier) => 
-            this.#content.querySelector(`.b-container[aria-identifier="${identifier}"]`)
-        ).filter((val, index, arr) => val && arr.indexOf(val) === index);
-
-        this.#menu.replaceChildren(...menuChildren);
-        this.#content.replaceChildren(...contentChildren);
-    }
-
-    #attachGlobalEvents() {
-        this.#handleMenuClick = this.#handleMenuClick.bind(this);
-        this.#handleScroll = this.#handleScroll.bind(this);
-        this.#handleMouseMove = this.#handleMouseMove.bind(this);
-
-        document.addEventListener('click', this.#handleMenuClick);
-        document.addEventListener('scroll', this.#handleScroll);
-        document.addEventListener('mousemove', this.#handleMouseMove);
-        document.addEventListener('drag', this.#handleMouseMove);
-        // document.removeEventListener('load', this.#handleLoad);
-    }
-
-    #handleScroll = () => {
-        const navbar = document.querySelector('.b-navbar');
-        if (!navbar) return;
-
-        navbar.classList.toggle( 'scrolled', window.scrollY > 0 );
+    const setHidden = (child, hidden) => {
+      child.menuEntry.classList.toggle('hidden', hidden);
+      child.content.classList.toggle('hidden', hidden);
     };
 
-    #handleLoad() {
-        const stickyElements = document.querySelectorAll('.js-sticky');
-        const verticalScroll = window.scrollY;
+    for (const child of groupManager.getDescendants(groupId)) {
+      const hidden =
+        group.collapsed ||
+        (() => {
+          let current = child;
 
-        for (const element of stickyElements) {
-            if (!(element instanceof HTMLElement))
-                continue;
+          while (current.parentId) {
+            current = groupManager.getGroup(current.parentId);
 
-            const style = window.getComputedStyle(element);
+            if (!current) return false;
+            if (current.collapsed) return true;
+          }
 
-            if (style.position !== 'sticky')
-                element.style.position = 'sticky';
+          return false;
+        })();
 
-            const parent = element.parentElement;
-            if (!parent) continue;
+      setHidden(child, hidden);
+    }
+  }
 
-            const parentStyle = window.getComputedStyle(parent);
-            const parentBorder = parent.getBoundingClientRect();
-            const topPadding = parseInt(parentStyle.paddingTop, 10) || 0;
-            const parentStartY = (parentBorder.y + verticalScroll) + topPadding;
-            element.style.top = parentStartY + 'px';
-        }
-    };
+  #handleMenuClick = (event) => {
+    let element = event.target;
+    if (!(element instanceof HTMLElement)) return;
+    element = element.closest('.menu-entry');
 
-    collapseGroup(groupId) {
-        const groupManager = this.#report.getGroupManager();
-        const group = groupManager.getGroup(groupId);
+    if (!element) return;
+    if (!element.classList.contains('collapsable')) return;
 
-        if (!group) return;
+    const groupId = element.getAttribute('aria-identifier');
+    if (!groupId) return;
 
-        group.collapsed = !group.collapsed;
-        group.menuEntry.classList.toggle('collapsed', group.collapsed);
+    this.collapseGroup(groupId);
+  };
 
-        const setHidden = (child, hidden) => {
-            child.menuEntry.classList.toggle('hidden', hidden);
-            child.content.classList.toggle('hidden', hidden);
-        };
+  /**
+   * @param {string} title
+   * @param {string} identifier
+   */
+  #createMenuEntry(title, identifier, depth = 0) {
+    const entry = document.createElement('div');
 
-        for (const child of groupManager.getDescendants(groupId)) {
-            const hidden = group.collapsed || (() => {
-                let current = child;
-
-                while (current.parentId) {
-                    current = groupManager.getGroup(current.parentId);
-
-                    if (!current) return false;
-                    if (current.collapsed) return true;
-                }
-
-                return false;
-            })();
-
-            setHidden(child, hidden);
-        }
+    entry.classList.add('menu-entry');
+    if (depth > 0) {
+      entry.classList.add('indent');
+      entry.style.setProperty('--menu-indent', depth);
     }
 
-    #handleMenuClick = (event) => {
-        let element = event.target;
-        if (!(element instanceof HTMLElement)) return;
-        element = element.closest('.menu-entry');
+    entry.setAttribute('aria-identifier', identifier);
+    entry.draggable = true;
 
-        if (!element) return;
-        if (!element.classList.contains('collapsable')) return;
-        
-        const groupId = element.getAttribute('aria-identifier');
-        if (!groupId) return;
+    const text = document.createElement('p');
+    text.classList.add('desc');
+    text.innerText = title;
 
-        this.collapseGroup(groupId);
-    };
+    entry.appendChild(text);
+    return entry;
+  }
 
-    /**
-     * @param {string} title
-     * @param {string} identifier
-     */
-    #createMenuEntry(title, identifier, depth = 0) {
-        const entry = document.createElement('div');
+  /**
+   * @param {string} identifier
+   */
+  #createGroupContainer(identifier) {
+    const group = document.createElement('div');
+    group.classList.add('b-container');
+    group.setAttribute('aria-identifier', identifier);
 
-        entry.classList.add('menu-entry');
-        if (depth > 0) {
-            entry.classList.add('indent');
-            entry.style.setProperty('--menu-indent', depth);
-        }
+    return group;
+  }
 
-        entry.setAttribute('aria-identifier', identifier);
-        entry.draggable = true;
+  /**
+   * @param {MouseEvent} event
+   */
+  #handleMouseMove = ({ clientY }) => {
+    this.#mouseY = clientY;
+  };
 
-        const text = document.createElement('p');
-        text.classList.add('desc');
-        text.innerText = title;
+  /**
+   * @param {boolean} force
+   */
+  toggleScrolling(force = !this.#autoScroll) {
+    const lastState = this.#shouldScroll;
+    this.#shouldScroll = force;
+    if (this.#shouldScroll && !lastState) this.#autoScroll();
+  }
 
-        entry.appendChild(text);
-        return entry;
-    }
+  #autoScroll() {
+    if (!this.#shouldScroll) return;
+    let scrollDir = 0;
+    const topThreshold = 80 + /* navbar */ 88;
+    const bottomThreshold = 80;
 
-    /**
-     * @param {string} identifier
-     */
-    #createGroupContainer(identifier) {
-        const group = document.createElement('div');
-        group.classList.add('b-container');
-        group.setAttribute('aria-identifier', identifier);
+    const { top, bottom } = this.#parent.getBoundingClientRect();
 
-        return group;
-    }
+    if (this.#mouseY < top + topThreshold) scrollDir = -1;
+    else if (this.#mouseY > bottom - bottomThreshold) scrollDir = 1;
+    else scrollDir = 0;
 
-    /**
-     * @param {MouseEvent} event 
-     */
-    #handleMouseMove = ({ clientY }) => {
-        this.#mouseY = clientY;
-    }
+    this.#parent.scrollTop += scrollDir * 12;
+    requestAnimationFrame(() => this.#autoScroll());
+  }
 
-    /**
-     * @param {boolean} force 
-     */
-    toggleScrolling(force = !this.#autoScroll) {
-        let lastState = this.#shouldScroll;
-        this.#shouldScroll = force;
-        if (this.#shouldScroll && !lastState)
-            this.#autoScroll();
-    }
-
-    #autoScroll() {
-        if (!this.#shouldScroll) return;
-        let scrollDir = 0;
-        const topThreshold = 80 + /* navbar */ 88;
-        const bottomThreshold = 80;
-
-        const { top, bottom } = this.#parent.getBoundingClientRect();
-
-        if (this.#mouseY < top + topThreshold) scrollDir = -1;
-        else if (this.#mouseY > bottom - bottomThreshold) scrollDir = 1;
-        else scrollDir = 0;
-
-        this.#parent.scrollTop += scrollDir * 12;
-        requestAnimationFrame(() => this.#autoScroll());
-    }
-
-    destroy() {
-        document.removeEventListener('click', this.#handleMenuClick);
-        document.removeEventListener('scroll', this.#handleScroll);
-        document.removeEventListener('mousemove', this.#handleMouseMove);
-        document.removeEventListener('drag', this.#handleMouseMove);
-        document.removeEventListener('load', this.#handleLoad);
-    }
-
+  destroy() {
+    document.removeEventListener('click', this.#handleMenuClick);
+    document.removeEventListener('scroll', this.#handleScroll);
+    document.removeEventListener('mousemove', this.#handleMouseMove);
+    document.removeEventListener('drag', this.#handleMouseMove);
+    document.removeEventListener('load', this.#handleLoad);
+  }
 }

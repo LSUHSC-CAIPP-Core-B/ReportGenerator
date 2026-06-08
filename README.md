@@ -3,7 +3,7 @@
 ![Github code size in bytes](https://img.shields.io/github/languages/code-size/lsuhsc-caipp-core-b/reportgenerator?style=flat-square)
 ![GitHub package.json version](https://img.shields.io/github/package-json/v/lsuhsc-caipp-core-b/reportgenerator?style=flat-square)
 
-> A lightweight server, using [PathAtlas](https://github.com/LSUHSC-CAIPP-Core-B/PathAtlas), to generate reports from Mongo Databases and Template files.
+> A nodejs server, using [PathAtlas](https://github.com/LSUHSC-CAIPP-Core-B/PathAtlas), to generate reports from Mongo Databases and Template files.
 
 
 ## Quick Start

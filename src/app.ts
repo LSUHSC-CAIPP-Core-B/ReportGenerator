@@ -12,8 +12,8 @@ server.listen(WEBSERVER_PORT, async () => {
     await connectDB();
   } catch (e) {
     console.error(e);
-    await new Promise((resolve: (value: void) => void, reject) => {
-      server.close((err) => (err) ? reject(err) : resolve());
+    await new Promise((resolve: (value: undefined) => void, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
     }).then(() => process.exit(1));
   }
 });
