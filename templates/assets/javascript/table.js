@@ -1,315 +1,323 @@
 /**
- * @param {HTMLTableElement} element 
- * @param {string} data 
+ * @param {HTMLTableElement} element
+ * @param {string} data
  */
 function loadCSVTable(data) {
-    return data.split("\n")
-        .filter(line => !line.match(/^$/g))
-        .map(line => line.split(/(?<=(?:^|,)(?:"(?:""|[^"])*"|[^"]+)),(?![^"]+",)/g)
-            .map(d =>
-                (d.match(/^\d+(?:\.\d+)?$/))
-                    ? parseFloat(d)
-                    : d.replaceAll(/^"|"$/g, "").replaceAll(/""/g, "\"")
-            )
-        );
+  return data
+    .split('\n')
+    .filter((line) => !line.match(/^$/g))
+    .map((line) =>
+      line
+        .split(/(?<=(?:^|,)(?:"(?:""|[^"])*"|[^"]+)),(?![^"]+",)/g)
+        .map((d) =>
+          d.match(/^\d+(?:\.\d+)?$/)
+            ? parseFloat(d)
+            : d.replaceAll(/^"|"$/g, '').replaceAll(/""/g, '"'),
+        ),
+    );
 }
 
 export class TableHandler {
+  /** @param {HTMLTableElement} element */
+  static async fromElement(element) {
+    const ariaTableAttr = element.attributes.getNamedItem('aria-table');
+    if (ariaTableAttr == null) return;
 
-    /** @param {HTMLTableElement} element */
-    static async fromElement(element) {
-        const ariaTableAttr = element.attributes.getNamedItem('aria-table');
-        if (ariaTableAttr == null) return;
+    const url = new URL(ariaTableAttr.nodeValue, element.baseURI);
+    const ariaFileTypeAttr = element.attributes.getNamedItem('aria-filetype');
+    const fileType = ariaFileTypeAttr.nodeValue || 'csv';
 
-        const url = new URL(ariaTableAttr.nodeValue, element.baseURI);
-        const ariaFileTypeAttr = element.attributes.getNamedItem('aria-filetype');
-        const fileType = ariaFileTypeAttr.nodeValue || 'csv';
+    const response = await fetch(url);
+    const data = await response.text();
+    let content;
 
-        const response = await fetch(url);
-        const data = await response.text();
-        let content;
-
-        switch (fileType) {
-            case 'csv':
-                content = loadCSVTable(data);
-        }
-
-        return new TableHandler(element, content)
-            .maxRows(15).load();
+    switch (fileType) {
+      case 'csv':
+        content = loadCSVTable(data);
     }
 
-    /**
-     * @param {HTMLElement} element 
-     * @param {(string | number)[][]} data 
-     */
-    constructor(element, data) {
-        const orderStr = element.attributes.getNamedItem("aria-column-order")?.value;
-        const indexRows = element.attributes.getNamedItem("aria-row-index") != null;
+    return new TableHandler(element, content).maxRows(15).load();
+  }
 
-        const order = orderStr?.split(',')?.map(o => Number.parseInt(o));
-        let mapped_data = this.#reorderData(data, order);
-        if (indexRows) mapped_data = this.#indexData(mapped_data);
+  /**
+   * @param {HTMLElement} element
+   * @param {(string | number)[][]} data
+   */
+  constructor(element, data) {
+    const orderStr = element.attributes.getNamedItem('aria-column-order')?.value;
+    const indexRows = element.attributes.getNamedItem('aria-row-index') != null;
 
-        this.data = mapped_data.slice(1);
-        this.initial_data = this.data;
+    const order = orderStr?.split(',')?.map((o) => Number.parseInt(o, 10));
+    let mapped_data = this.#reorderData(data, order);
+    if (indexRows) mapped_data = this.#indexData(mapped_data);
 
-        let headers = mapped_data[0];
-        if (indexRows) headers[0] = 'INDEX';
+    this.data = mapped_data.slice(1);
+    this.initial_data = this.data;
 
-        this.#createActions(element)
-            .#makeHeaders(headers)
-            .maxRows(10);
-    }
+    const headers = mapped_data[0];
+    if (indexRows) headers[0] = 'INDEX';
 
-    /**
-     * @param {number} rows Rows to display
-     * @returns {TableHandler}
-     */
-    maxRows(rows) {
-        this.rows = Math.max(rows, 10);
-        this.max_pages = Math.floor(this.data.length / this.rows);
+    this.#createActions(element).#makeHeaders(headers).maxRows(10);
+  }
 
-        const existing = [...this.element.querySelectorAll('.table-row.row')];
-        const toAdd = Math.max(this.rows - existing.length, 0);
+  /**
+   * @param {number} rows Rows to display
+   * @returns {TableHandler}
+   */
+  maxRows(rows) {
+    this.rows = Math.max(rows, 10);
+    this.max_pages = Math.floor(this.data.length / this.rows);
 
-        // Remove overflowing elements
-        existing.slice(rows).forEach(e => e.remove());
+    const existing = [...this.element.querySelectorAll('.table-row.row')];
+    const toAdd = Math.max(this.rows - existing.length, 0);
 
-        // Add new elements
-        new Array(toAdd).fill("div")
-            .map(document.createElement, document)
-            .map((e, i) => { 
-                e.classList.add('table-row','row');
-                return e;
-            }).forEach(this.element.appendChild, this.element);
+    // Remove overflowing elements
+    existing.slice(rows).forEach((e) => {
+      e.remove();
+    });
 
-        return this;
-    }
+    // Add new elements
+    new Array(toAdd)
+      .fill('div')
+      .map(document.createElement, document)
+      .map((e, _i) => {
+        e.classList.add('table-row', 'row');
+        return e;
+      })
+      .forEach(this.element.appendChild, this.element);
 
-    /**
-     * @param {Number} page 
-     * @returns {TableHandler}
-     */
-    load(page = 0) {
-        this.page = page;
-        var offset = page * this.rows;
+    return this;
+  }
 
-        const existing = [...this.element.querySelectorAll('.table-row.row')];
+  /**
+   * @param {Number} page
+   * @returns {TableHandler}
+   */
+  load(page = 0) {
+    this.page = page;
+    var offset = page * this.rows;
 
-        const selected = this.data.slice(offset, offset + this.rows);
+    const existing = [...this.element.querySelectorAll('.table-row.row')];
 
-        selected.forEach((row, i) => {
-            const rowElement = existing[i];
-            const columns = [...rowElement.querySelectorAll('.table-entry .entry-text')];
+    const selected = this.data.slice(offset, offset + this.rows);
 
-            row.forEach((data, j) => {
-                if (columns[j] == null)
-                    rowElement.appendChild(this.#createEntry(data));
-                else columns[j].innerText = data;
-            });
+    selected.forEach((row, i) => {
+      const rowElement = existing[i];
+      const columns = [...rowElement.querySelectorAll('.table-entry .entry-text')];
+
+      row.forEach((data, j) => {
+        if (columns[j] == null) rowElement.appendChild(this.#createEntry(data));
+        else columns[j].innerText = data;
+      });
+    });
+
+    if (selected.length < this.rows) {
+      existing.slice(selected.length).forEach((row) => {
+        row.querySelectorAll('.table-entry .entry-text').forEach((column) => {
+          column.innerText = '';
         });
-
-        if (selected.length < this.rows) {
-            existing.slice(selected.length).forEach(row => {
-                row.querySelectorAll('.table-entry .entry-text').forEach(column => {
-                    column.innerText = "";
-                });
-            });
-        }
-
-        this.page_display.innerText = `Page: ${this.page + 1}/${this.max_pages + 1}`;
-        return this;
+      });
     }
 
-    /**
-     * @param {String} content 
-     * @returns {HTMLElement}
-     */
-    #createEntry(content) {
-        const entry = document.createElement('span');
-        entry.classList.add('table-entry');
-        
-        const holder = document.createElement('p');
-        holder.classList.add('entry-text');
-        holder.innerText = content;
+    this.page_display.innerText = `Page: ${this.page + 1}/${this.max_pages + 1}`;
+    return this;
+  }
 
-        entry.appendChild(holder);
-        return entry;
-    }
+  /**
+   * @param {String} content
+   * @returns {HTMLElement}
+   */
+  #createEntry(content) {
+    const entry = document.createElement('span');
+    entry.classList.add('table-entry');
 
-    /**
-     * @param {Event} event 
-     * @returns {TableHandler}
-     */
-    #searchEvent(event) {
-        /** @type {HTMLInputElement} */
-        const element = event.target;
-        const searchStr = element.value;
+    const holder = document.createElement('p');
+    holder.classList.add('entry-text');
+    holder.innerText = content;
 
-        const escaped = RegExp.escape(searchStr.toLowerCase());
-        const search = new RegExp(escaped, 'gi');
+    entry.appendChild(holder);
+    return entry;
+  }
 
-        this.data = this.initial_data.filter(row => {
-            return row.map(data => data.toString().match(search))
-                .reduce((a, b) => a || b, false);
-        });
+  /**
+   * @param {Event} event
+   * @returns {TableHandler}
+   */
+  #searchEvent(event) {
+    /** @type {HTMLInputElement} */
+    const element = event.target;
+    const searchStr = element.value;
 
-        this.max_pages = Math.floor(this.data.length / this.rows);
+    const escaped = RegExp.escape(searchStr.toLowerCase());
+    const search = new RegExp(escaped, 'gi');
 
-        // Reload the page
-        return this.load();
-    }
+    this.data = this.initial_data.filter((row) => {
+      return row.map((data) => data.toString().match(search)).reduce((a, b) => a || b, false);
+    });
 
-    /**
-     * @param {Event} event 
-     * @returns {TableHandler}
-     */
-    #sort(event) {
-        /** @type {HTMLElement} */
-        let element = event.target;
-        const parent = element.parentElement;
+    this.max_pages = Math.floor(this.data.length / this.rows);
 
-        const parentNode = parent.getAttributeNode('aria-column')
+    // Reload the page
+    return this.load();
+  }
 
-        const attr = parentNode || element.getAttributeNode('aria-column');
+  /**
+   * @param {Event} event
+   * @returns {TableHandler}
+   */
+  #sort(event) {
+    /** @type {HTMLElement} */
+    const element = event.target;
+    const parent = element.parentElement;
 
-        const target = (!parentNode) ? element : parent;
-        [...target.parentElement.children].forEach(child => {
-            child.classList.toggle('sort-desc', false);
-            child.classList.toggle('sort-asce', false);
-        });
+    const parentNode = parent.getAttributeNode('aria-column');
 
-        // sort-des
+    const attr = parentNode || element.getAttributeNode('aria-column');
 
-        this.prev_column_sort = this.column_sort;
-        this.column_sort = Number.parseInt(attr?.value || '0');
-        this.sort_direction = (this.prev_column_sort == this.column_sort) ? -this.sort_direction : 1;
+    const target = !parentNode ? element : parent;
+    [...target.parentElement.children].forEach((child) => {
+      child.classList.toggle('sort-desc', false);
+      child.classList.toggle('sort-asce', false);
+    });
 
-        target.classList.toggle('sort-desc', this.sort_direction == 1);
-        target.classList.toggle('sort-asce', this.sort_direction == -1);
+    // sort-des
 
-        this.data = this.data.sort((r1, r2) => 
-            (r1[this.column_sort] < r2[this.column_sort]) ? -this.sort_direction
-                : (r1[this.column_sort] > r2[this.column_sort]) ? this.sort_direction : 0
-        );
+    this.prev_column_sort = this.column_sort;
+    this.column_sort = Number.parseInt(attr?.value || '0', 10);
+    this.sort_direction = this.prev_column_sort === this.column_sort ? -this.sort_direction : 1;
 
-        // Reload the page
-        return this.load(this.page);
-    }
+    target.classList.toggle('sort-desc', this.sort_direction === 1);
+    target.classList.toggle('sort-asce', this.sort_direction === -1);
 
-    /**
-     * 
-     * @param {Number} offset 
-     * @returns {TableHandler}
-     */
-    #paginate(offset = 0) {
-        const page = Math.min(
-            // Make greater than 0
-            Math.max(this.page + offset, 0),
-            // Make less than max pages
-            this.max_pages
-        );
+    this.data = this.data.sort((r1, r2) =>
+      r1[this.column_sort] < r2[this.column_sort]
+        ? -this.sort_direction
+        : r1[this.column_sort] > r2[this.column_sort]
+          ? this.sort_direction
+          : 0,
+    );
 
-        return this.load(page);
-    }
+    // Reload the page
+    return this.load(this.page);
+  }
 
-    /**
-     * @param {HTMLElement} element
-     * @returns {TableHandler}
-     */
-    #createActions(element) {
-        const [
-            SEARCH_LABEL, SEARCH, CONTROLS, TABLE, PAGE_DISPLAY,
-            FAST_BACKWARDS, BACK, FORWARD, FAST_FORWARDS
-        ] = [
-            'label', 'input', 'span', 'div', 'span',
-            'span', 'span', 'span', 'span'
-        ].map(document.createElement, document);
+  /**
+   *
+   * @param {Number} offset
+   * @returns {TableHandler}
+   */
+  #paginate(offset = 0) {
+    const page = Math.min(
+      // Make greater than 0
+      Math.max(this.page + offset, 0),
+      // Make less than max pages
+      this.max_pages,
+    );
 
-        SEARCH_LABEL.append("Search: ");
-        SEARCH_LABEL.appendChild(SEARCH);
-        SEARCH_LABEL.classList.add('table-search');
+    return this.load(page);
+  }
 
-        SEARCH.addEventListener('input', (event) => this.#searchEvent(event));
+  /**
+   * @param {HTMLElement} element
+   * @returns {TableHandler}
+   */
+  #createActions(element) {
+    const [
+      SEARCH_LABEL,
+      SEARCH,
+      CONTROLS,
+      TABLE,
+      PAGE_DISPLAY,
+      FAST_BACKWARDS,
+      BACK,
+      FORWARD,
+      FAST_FORWARDS,
+    ] = ['label', 'input', 'span', 'div', 'span', 'span', 'span', 'span', 'span'].map(
+      document.createElement,
+      document,
+    );
 
-        CONTROLS.appendChild(FAST_BACKWARDS);
-        CONTROLS.appendChild(BACK);
-        CONTROLS.appendChild(PAGE_DISPLAY);
-        CONTROLS.appendChild(FORWARD);
-        CONTROLS.appendChild(FAST_FORWARDS);
-        CONTROLS.classList.add('table-controls');
+    SEARCH_LABEL.append('Search: ');
+    SEARCH_LABEL.appendChild(SEARCH);
+    SEARCH_LABEL.classList.add('table-search');
 
-        FAST_BACKWARDS.addEventListener('click', (event) => this.#paginate(Number.NEGATIVE_INFINITY));
-        FAST_BACKWARDS.classList.add('control-clickable');
-        FAST_BACKWARDS.append("Start")
+    SEARCH.addEventListener('input', (event) => this.#searchEvent(event));
 
-        BACK.addEventListener('click', (event) => this.#paginate(-1));
-        BACK.classList.add('control-clickable');
-        BACK.append("Prev")
+    CONTROLS.appendChild(FAST_BACKWARDS);
+    CONTROLS.appendChild(BACK);
+    CONTROLS.appendChild(PAGE_DISPLAY);
+    CONTROLS.appendChild(FORWARD);
+    CONTROLS.appendChild(FAST_FORWARDS);
+    CONTROLS.classList.add('table-controls');
 
-        FORWARD.addEventListener('click', (event) => this.#paginate(1));
-        FORWARD.classList.add('control-clickable');
-        FORWARD.append("Next")
+    FAST_BACKWARDS.addEventListener('click', (_event) => this.#paginate(Number.NEGATIVE_INFINITY));
+    FAST_BACKWARDS.classList.add('control-clickable');
+    FAST_BACKWARDS.append('Start');
 
-        FAST_FORWARDS.addEventListener('click', (event) => this.#paginate(Number.POSITIVE_INFINITY));
-        FAST_FORWARDS.classList.add('control-clickable');
-        FAST_FORWARDS.append("End")
+    BACK.addEventListener('click', (_event) => this.#paginate(-1));
+    BACK.classList.add('control-clickable');
+    BACK.append('Prev');
 
+    FORWARD.addEventListener('click', (_event) => this.#paginate(1));
+    FORWARD.classList.add('control-clickable');
+    FORWARD.append('Next');
 
-        this.page_display = PAGE_DISPLAY;
-        this.element = TABLE;
+    FAST_FORWARDS.addEventListener('click', (_event) => this.#paginate(Number.POSITIVE_INFINITY));
+    FAST_FORWARDS.classList.add('control-clickable');
+    FAST_FORWARDS.append('End');
 
-        TABLE.classList.add('g-table');
+    this.page_display = PAGE_DISPLAY;
+    this.element = TABLE;
 
-        element.appendChild(SEARCH_LABEL);
-        element.appendChild(TABLE);
-        element.appendChild(CONTROLS);
+    TABLE.classList.add('g-table');
 
-        return this;
-    }
+    element.appendChild(SEARCH_LABEL);
+    element.appendChild(TABLE);
+    element.appendChild(CONTROLS);
 
-    /**
-     * @param {Object[]} headers 
-     * @returns {TableHandler}
-     */
-    #makeHeaders(headers) {
-        this.columns = headers?.length || 0;
+    return this;
+  }
 
-        this.element.style.setProperty('--cols', this.columns);
+  /**
+   * @param {Object[]} headers
+   * @returns {TableHandler}
+   */
+  #makeHeaders(headers) {
+    this.columns = headers?.length || 0;
 
-        const header = document.createElement('div');
-        header.classList.add('table-row', 'header');
-        this.element.appendChild(header);
+    this.element.style.setProperty('--cols', this.columns);
 
-        headers.map(this.#createEntry, this)
-            .forEach((column, index) => {
-                const attr = document.createAttribute('aria-column');
-                attr.value = `${index}`;
-                column.attributes.setNamedItem(attr);
+    const header = document.createElement('div');
+    header.classList.add('table-row', 'header');
+    this.element.appendChild(header);
 
-                column.addEventListener('click', (event) => this.#sort(event));
-                header.appendChild(column);
-            }, header);
+    headers.map(this.#createEntry, this).forEach((column, index) => {
+      const attr = document.createAttribute('aria-column');
+      attr.value = `${index}`;
+      column.attributes.setNamedItem(attr);
 
-        return this;
-    }
+      column.addEventListener('click', (event) => this.#sort(event));
+      header.appendChild(column);
+    }, header);
 
-    /**
-     * @param {(string | number)[][]} data
-     * @param {number[] | undefined} order
-     * @returns {(string | number)[][]}
-     */
-    #reorderData(data, order) {
-        if (!order) return data;
-        return data.map(row => order.map(o => row[o]));
-    }
+    return this;
+  }
 
-    /**
-     * @param {(string | number)[][]} data
-     * @returns {(string | number)[][]}
-     */
-    #indexData(data) {
-        return data.map((row, i) => [i, ...row]);
-    }
+  /**
+   * @param {(string | number)[][]} data
+   * @param {number[] | undefined} order
+   * @returns {(string | number)[][]}
+   */
+  #reorderData(data, order) {
+    if (!order) return data;
+    return data.map((row) => order.map((o) => row[o]));
+  }
 
+  /**
+   * @param {(string | number)[][]} data
+   * @returns {(string | number)[][]}
+   */
+  #indexData(data) {
+    return data.map((row, i) => [i, ...row]);
+  }
 }

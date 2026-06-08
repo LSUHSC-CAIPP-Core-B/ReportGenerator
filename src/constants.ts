@@ -23,7 +23,7 @@ searchParams.set('appName', APP_NAME);
 
 let _serverPort = 15632;
 try {
-  _serverPort = parseInt(serverPort || '15632');
+  _serverPort = parseInt(serverPort || '15632', 10);
 } catch (_ignored) {}
 
 // Export needed entries

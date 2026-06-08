@@ -4,56 +4,56 @@
 /* You're welcome! - @Leialoha */
 
 .container {
-    width: 100vw;
-    overflow: hidden;
+  width: 100vw;
+  overflow: hidden;
 }
 
 .container .row {
-    width: fit-content;
-    display: grid;
-    margin: auto;
-    gap: 3rem;
+  display: grid;
+  gap: 3rem;
+  width: fit-content;
+  margin: auto;
 }
 
 .container .row:has(.col-md-6) {
-    grid-template-columns: auto auto;
+  grid-template-columns: auto auto;
 }
 
 @media screen and (max-width: 1060px) {
-    .container .row:has(.col-md-6) {
-        grid-template-columns: auto;
-    }
+  .container .row:has(.col-md-6) {
+    grid-template-columns: auto;
+  }
 
-    .container .row .col-md-6:not(:first-child) .glimma-plot .tooltip {
-        display: inline-block;
-        margin-top: -88%;
-    }
+  .container .row .col-md-6:not(:first-child) .glimma-plot .tooltip {
+    display: inline-block;
+    margin-top: -88%;
+  }
 }
 
 .container .row:has(.col-md-6)::before,
 .container .row:has(.col-md-6)::after {
-    content: none !important;
+  content: none;
 }
 
 .container .row .col-md-6 {
-    width: 100%;
-    padding: 0;
+  width: 100%;
+  padding: 0;
 }
 
 .container .row .dataTables_wrapper {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .container .row .dataTables_wrapper .dataTables_scroll {
-    display: grid;
-    grid-template-columns: auto-fill;
-    overflow: scroll;
+  display: grid;
+  grid-template-columns: auto-fill;
+  overflow: scroll;
 }
 
 .container .row .dataTables_wrapper .dataTables_scroll .dataTables_scrollHead {
-    width: max-content !important;
+  width: max-content;
 }
 
 .container .row .dataTables_wrapper .dataTables_scroll .dataTables_scrollBody table {
-    max-width: 1050px;
+  max-width: 1050px;
 }
