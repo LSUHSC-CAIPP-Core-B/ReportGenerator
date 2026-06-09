@@ -50,6 +50,7 @@ export class ElementFactory {
   }
 
   createElementFromType(options) {
+    console.log(options);
     const { type } = options;
 
     if (type === 'description') return this.createDescription(options);
@@ -85,13 +86,18 @@ export class ElementFactory {
     const { view } = createProseMirrorEditor({
       content: description,
       mount,
-      onChange: (html) => {
-        element.data.description = html;
+      onBlur: (content) => {
+        this.#report.emit('element:update', {
+          data: { description: content },
+          elementId: element.identifier,
+        });
+      },
+      onChange: (content) => {
+        element.data.description = content;
       },
     });
 
     this.#toolbar.bind(view);
-
     return element;
   }
 

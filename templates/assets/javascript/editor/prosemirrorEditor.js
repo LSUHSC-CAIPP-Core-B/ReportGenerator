@@ -55,7 +55,7 @@ export const schema = new Schema({
   nodes: basicSchema.spec.nodes.update('paragraph', paragraph).update('heading', heading),
 });
 
-export function createProseMirrorEditor({ mount, content = '', onChange }) {
+export function createProseMirrorEditor({ mount, content = '', onChange, onBlur }) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = content || '';
 
@@ -71,13 +71,14 @@ export function createProseMirrorEditor({ mount, content = '', onChange }) {
 
       if (onChange) {
         const div = document.createElement('div');
-
         const fragment = DOMSerializer.fromSchema(schema).serializeFragment(newState.doc.content);
-
         div.appendChild(fragment);
 
-        onChange(div.innerHTML);
+        if (tr.docChanged) onChange(div.innerHTML);
       }
+    },
+    handleDOMEvents: {
+      blur: (view, event) => onBlur(event.target.innerHTML),
     },
     state,
   });

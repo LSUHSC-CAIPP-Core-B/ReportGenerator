@@ -4,7 +4,10 @@ import { GroupManager } from './managers/GroupManager.js';
 import { LayoutManager } from './managers/LayoutManager.js';
 import { PendingInsertManager } from './managers/PendingInsertManager.js';
 
-export class ReportBuilder {
+export class ReportBuilder extends EventTarget {
+  /** @type {string} */
+  #title;
+
   /** @type {string} */
   #project;
 
@@ -25,11 +28,15 @@ export class ReportBuilder {
 
   /**
    * @param {Object} options
+   * @param {string} options.title
    * @param {string} options.project
    * @param {any[]} options.groups
    * @param {HTMLElement} parent
    */
-  constructor({ project, groups = [] }, parent = document.body) {
+  constructor({ title, project, groups = [] }, parent = document.body) {
+    super();
+
+    this.#title = title;
     this.#project = project;
 
     this.#layout = new LayoutManager(this, parent);
@@ -39,6 +46,10 @@ export class ReportBuilder {
     this.#dragdrop = new DragDropManager(this);
 
     for (const group of groups) this.#groups.create(group);
+  }
+
+  getProjectTitle() {
+    return this.#title;
   }
 
   getProjectId() {
@@ -91,5 +102,17 @@ export class ReportBuilder {
   destroy() {
     this.#dragdrop.destroy();
     this.#layout.destroy();
+  }
+
+  emit(type, detail = {}) {
+    this.dispatchEvent(
+      new CustomEvent(type, {
+        detail: {
+          report: this,
+          timestamp: Date.now(),
+          ...detail,
+        },
+      }),
+    );
   }
 }
