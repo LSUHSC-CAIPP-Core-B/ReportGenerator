@@ -58,7 +58,9 @@ export class ElementFactory {
     else if (type === 'table') return this.createTableElement(options);
 
     return this.createDescription({
-      description: `Unsupported element type: ${type}`,
+      data: {
+        description: `Unsupported element type: ${type}`,
+      },
     });
   }
 
@@ -66,7 +68,8 @@ export class ElementFactory {
    * @param {Object} options
    */
   createDescription(options = {}) {
-    const { description = 'Sample description', identifier = createIdentifier() } = options;
+    const { data = {}, identifier = createIdentifier() } = options;
+    const { description = 'Sample description' } = data;
     const shell = this.#createElementShell({ details: 'Description', icon: 'text', identifier });
     const mount = document.createElement('div');
     mount.classList.add('pm-mount');
