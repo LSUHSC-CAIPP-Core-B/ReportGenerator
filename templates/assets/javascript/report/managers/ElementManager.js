@@ -59,38 +59,76 @@ export class ElementManager {
     if (beforeNode) group.content.insertBefore(element.node, beforeNode);
     else group.content.appendChild(element.node);
 
+    this.#report.emit('element:create', {
+      groupId,
+      index,
+      options: element,
+    });
+
     return element;
   }
 
   /**
    * @param {string} elementId
-   * @param {string} sourceGroupId
-   * @param {string} targetGroupId
-   * @param {number} targetIndex
+   * @param {string} fromGroupId
+   * @param {string} toGroupId
+   * @param {number} index
    */
-  moveElementToGroup(elementId, sourceGroupId, targetGroupId, targetIndex = 0) {
+  moveElementToGroup(elementId, fromGroupId, toGroupId, index = 0) {
     const groupManager = this.#report.getGroupManager();
 
-    const sourceGroup = groupManager.getGroup(sourceGroupId);
-    const targetGroup = groupManager.getGroup(targetGroupId);
+    const sourceGroup = groupManager.getGroup(fromGroupId);
+    const targetGroup = groupManager.getGroup(toGroupId);
 
     if (!sourceGroup || !targetGroup) return;
     const sourceIndex = sourceGroup.elements.findIndex(
       ({ identifier }) => identifier === elementId,
     );
 
-    if (sourceGroupId === targetGroupId)
-      if (sourceIndex === targetIndex) return;
-      else if (sourceIndex < targetIndex) targetIndex--;
+    if (fromGroupId === toGroupId)
+      if (sourceIndex === index) return;
+      else if (sourceIndex < index) index--;
 
     /** @type {ReportElement} */
     const element = sourceGroup.elements.splice(sourceIndex, 1)[0];
     /** @type {ReportElement} */
-    const target = targetGroup.elements.slice(targetIndex)[0];
-    targetGroup.elements.splice(targetIndex, 0, element);
+    const target = targetGroup.elements.slice(index)[0];
+    targetGroup.elements.splice(index, 0, element);
 
     if (target) targetGroup.content.insertBefore(element.node, target.node);
     else targetGroup.content.appendChild(element.node);
+
+    this.#report.emit('element:move', {
+      elementId,
+      fromGroupId,
+      index,
+      toGroupId,
+    });
+  }
+
+  deleteElement(elementId) {
+    let groupId = null;
+    let element = null;
+
+    iterateGroups(this.#report.getGroupManager(), 0, (group) => {
+      const idx = group.elements.findIndex((e) => e.identifier === elementId);
+
+      if (idx !== -1) {
+        groupId = group.identifier;
+        element = group.elements.splice(idx, 1)[0];
+        return false;
+      }
+    });
+
+    if (!element) return;
+
+    element.node.remove();
+    this.#elements.delete(elementId);
+
+    this.#report.emit('element:delete', {
+      elementId,
+      groupId,
+    });
   }
 
   /**

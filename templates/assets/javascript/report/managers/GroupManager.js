@@ -58,6 +58,13 @@ export class GroupManager {
 
     dragDropManager.attachGroupEvents(identifier);
     insertManager.attachGroupEvents(identifier);
+
+    this.#report.emit('group:create', {
+      groupId: identifier,
+      parentId,
+      title,
+    });
+
     return group;
   }
 
@@ -102,6 +109,27 @@ export class GroupManager {
 
     this.#groupOrder.splice(insertIndex, 0, ...movingIds);
     this.#rebuildGroupDOM();
+
+    this.#report.emit('group:move', {
+      groupId,
+      position,
+      targetId,
+    });
+  }
+
+  deleteGroup(groupId) {
+    const group = this.#groups.get(groupId);
+    if (!group) return;
+
+    this.#groups.delete(groupId);
+    this.#groupOrder = this.#groupOrder.filter((id) => id !== groupId);
+
+    group.content.remove();
+    group.menuEntry.remove();
+
+    this.#report.emit('group:delete', {
+      groupId,
+    });
   }
 
   getDescendants(groupId) {

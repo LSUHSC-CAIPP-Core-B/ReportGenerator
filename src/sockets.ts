@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { Server } from 'socket.io';
 import { server } from './app';
 import { ProjectModel } from './database/schemas';
+import projects from './projects';
 
 const io = new Server(server);
 
@@ -31,6 +32,46 @@ io.on('connection', (socket) => {
             id: '$file._id',
             path: '$file.path',
             type: '$file.type',
+          },
+        },
+      },
+    ]);
+
+    callback(lookup);
+
+    // console.log(lookup)
+  });
+
+  socket.on('local.project', async (projectId, action) => {
+    try {
+      const updated = await projects.applyAction(projectId, action);
+
+      socket.to(projectId).emit('local.project.updated', {
+        action,
+        updated,
+      });
+    } catch (err) {
+      console.log(err);
+
+      socket.emit('local.project.error', {
+        action,
+        error: String(err),
+      });
+    }
+  });
+
+  socket.on('local.projects', async (callback: Function) => {
+    const allProjects = await projects.getAllProjects();
+    callback(allProjects);
+  });
+
+  socket.on('db.projects', async (callback: Function) => {
+    const lookup = await ProjectModel.aggregate([
+      {
+        $replaceRoot: {
+          newRoot: {
+            id: '$_id',
+            path: '$path',
           },
         },
       },

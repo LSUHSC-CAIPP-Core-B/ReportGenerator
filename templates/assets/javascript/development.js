@@ -36,6 +36,8 @@ status.setDisconnectCallback(() => {
 document.addEventListener('DOMContentLoaded', () => {
   addReportActions(/** @type { ReportBuilder } */ (window.report));
   addGeneralActions();
+
+  addEventListeners(/** @type {ReportBuilder} */ (window.report));
 });
 
 /**
@@ -223,5 +225,69 @@ async function addGeneralActions() {
           value: { id },
         })),
       });
+  });
+}
+
+/**
+ * @param {ReportBuilder} report
+ */
+function addEventListeners(report) {
+  if (!report) return;
+
+  report.addEventListener('group:create', (e) => {
+    status.socket.emit('local.project', report.getProjectTitle(), {
+      ...e.detail,
+      type: 'group:create',
+    });
+    console.log('Group created', e.detail);
+  });
+
+  report.addEventListener('group:move', (e) => {
+    status.socket.emit('local.project', report.getProjectTitle(), {
+      ...e.detail,
+      type: 'group:move',
+    });
+    console.log('Group moved', e.detail);
+  });
+
+  report.addEventListener('group:delete', (e) => {
+    status.socket.emit('local.project', report.getProjectTitle(), {
+      ...e.detail,
+      type: 'group:delete',
+    });
+    console.log('Group deleted', e.detail);
+  });
+
+  report.addEventListener('element:create', (e) => {
+    status.socket.emit('local.project', report.getProjectTitle(), {
+      ...e.detail,
+      type: 'element:create',
+    });
+    console.log('Element created', e.detail);
+  });
+
+  report.addEventListener('element:move', (e) => {
+    status.socket.emit('local.project', report.getProjectTitle(), {
+      ...e.detail,
+      type: 'element:move',
+    });
+    console.log('Element moved', e.detail);
+  });
+
+  report.addEventListener('element:update', (e) => {
+    status.socket.emit('local.project', report.getProjectTitle(), {
+      ...e.detail,
+      type: 'element:update',
+    });
+
+    console.log('Element updated', e.detail);
+  });
+
+  report.addEventListener('element:delete', (e) => {
+    status.socket.emit('local.project', report.getProjectTitle(), {
+      ...e.detail,
+      type: 'element:delete',
+    });
+    console.log('Element deleted', e.detail);
   });
 }
