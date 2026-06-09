@@ -34,8 +34,15 @@ status.setDisconnectCallback(() => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  /** @type { ReportBuilder } */
-  const REPORT = window.report;
+  addReportActions(/** @type { ReportBuilder } */ (window.report));
+  addGeneralActions();
+});
+
+/**
+ * @param {ReportBuilder} REPORT
+ */
+function addReportActions(REPORT) {
+  if (!REPORT) return;
   const groupManager = REPORT.getGroupManager();
   const insertManager = REPORT.getPendingInsertManager();
 
@@ -91,8 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
       groupLookup[last].files.push({ id, name, path, type });
       paths[key] = groupLookup;
     }
-
-    console.log(paths);
 
     function constructTree({
       groups,
@@ -186,4 +191,37 @@ document.addEventListener('DOMContentLoaded', () => {
       label: 'Add Group',
     });
   });
-});
+}
+
+async function addGeneralActions() {
+  const projects = await status.socket.emitWithAck('local.projects');
+  status.socket.emit('db.projects', (projectIds) => {
+    const ids = Array.isArray(projectIds) ? projectIds : [projectIds];
+    const locals = Array.isArray(projects) ? projects : [projects];
+
+    commandPalette.addAction({
+      callback: (value) => {
+        window.location.pathname = value;
+      },
+      icon: 'arrow-left-right',
+      label: 'Switch Project',
+      tab: locals.map(({ title }) => ({
+        description: 'Switch project',
+        label: title,
+        value: title,
+      })),
+    });
+
+    if (!window.report)
+      commandPalette.addAction({
+        callback: (_value) => {},
+        icon: 'layers-plus',
+        label: 'Create Project',
+        tab: ids.map(({ id, path }) => ({
+          description: 'Create Project',
+          label: path,
+          value: { id },
+        })),
+      });
+  });
+}
