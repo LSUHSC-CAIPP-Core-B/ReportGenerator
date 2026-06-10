@@ -2,7 +2,6 @@ import { Config, DataError, JsonDB } from 'node-json-db';
 import { catchErrorTyped } from '../utilities';
 import {
   type ProjectAction,
-  ProjectElement,
   ProjectError,
   type ProjectGroup,
   type ProjectInfo,
@@ -19,9 +18,7 @@ class ProjectHandler {
   }
 
   async getProject(projectId: string) {
-    if (!projectId?.trim()) {
-      throw new ProjectError('Project id is required');
-    }
+    if (!projectId?.trim()) throw new ProjectError('Project id is required');
 
     const path = projectId?.toLowerCase();
 
@@ -36,13 +33,12 @@ class ProjectHandler {
   }
 
   async getAllProjects() {
-    const [error, report] = await catchErrorTyped(
+    const [, reports] = await catchErrorTyped(
       this.database.filter<ProjectReport>('/', () => true),
       [DataError],
     );
 
-    if (error) throw error;
-    return report;
+    return reports ?? [];
   }
 
   async createReport(projectId: string) {
@@ -68,10 +64,9 @@ class ProjectHandler {
     }
 
     const path = projectId.toLowerCase();
-    const exists = await this.database.exists(`/${path}`);
-    if (!exists) throw new ProjectError(`Project doesn't exist: ${projectId}`);
 
-    const existing = await this.getProject(projectId);
+    const [, existing] = await catchErrorTyped(this.database.getObject<ProjectReport>(`/${path}`));
+    if (!existing) throw new ProjectError(`Project doesn't exist: ${projectId}`);
 
     await this.database.push(
       `/${path}`,
