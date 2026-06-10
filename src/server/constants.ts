@@ -1,5 +1,6 @@
+import { resolve as resolvePath } from 'node:path';
 import { URL } from 'node:url';
-import { name as APP_NAME } from '../package.json';
+import { name as APP_NAME } from '../../package.json';
 
 // Import process env variables
 const {
@@ -29,7 +30,7 @@ try {
 // Export needed entries
 export const COMPLETE_DATABASE_URL = urlObject.toString().replace(/^[^:]+/g, dbProtocol || 'mongo');
 
-export const TEMPLATE_DIRECTORY = templateFolder || 'templates';
+export const TEMPLATE_DIRECTORY = resolvePath(__dirname, '..', templateFolder || 'client');
 export const WEBSERVER_PORT = _serverPort;
 
 export { DATABASE_URL, DATABASE_USER, DATABASE_PASS, DATABASE_NAME, APP_NAME };

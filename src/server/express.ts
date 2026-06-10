@@ -1,5 +1,5 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
-import path, { join } from 'node:path';
+import { join as joinPath } from 'node:path';
 import express, { type Request, type Response, static as staticFiles } from 'express';
 import { Types } from 'mongoose';
 import { UAParser } from 'ua-parser-js';
@@ -13,7 +13,7 @@ import { catchErrorTyped, getParam } from './utilities';
 const app = express();
 
 app.engine('html', liquid.express());
-app.set('views', path.resolve(TEMPLATE_DIRECTORY));
+app.set('views', TEMPLATE_DIRECTORY);
 app.set('view engine', 'liquid');
 app.use('/assets', staticFiles(`${TEMPLATE_DIRECTORY}/assets`));
 
@@ -22,14 +22,14 @@ app.get(['/', '/:identifier'], async (req: Request, res: Response) => {
 
   // We should realistically never have an array of projects
   const projectId = Array.isArray(projectIds) ? projectIds[0] : projectIds;
-  const project = await projects.getProject(projectId);
+  const promised =
+    projectId === undefined ? Promise.resolve(undefined) : projects.getProject(projectId);
+  const [, project] = await catchErrorTyped(promised);
 
   const allProjects = await projects.getAllProjects();
   const reports = allProjects.map(reduceReport);
 
-  projects.getProject(req.params.identifier as string);
-
-  if (req.path !== '/' && project == null) return res.redirect('/');
+  if (req.path !== '/' && !project) return res.redirect('/');
 
   const parser = new UAParser(req.headers as Record<string, string>);
   const os = { ...parser.getOS() };
@@ -88,11 +88,11 @@ app.get(
       { $limit: 1 },
     ]);
 
-    const path = join(lookup[0].file.path, ...additional);
-    const fileLookup = join(lookup[0].absolutePath, path);
+    const path = joinPath(lookup[0].file.path, ...additional);
+    const fileLookup = joinPath(lookup[0].absolutePath, path);
 
     if (fileLookup.endsWith('glimma.min.css')) {
-      const injectedCSS = join(TEMPLATE_DIRECTORY, 'assets', 'css', 'iframe.css');
+      const injectedCSS = joinPath(TEMPLATE_DIRECTORY, 'assets', 'css', 'iframe.css');
 
       const status = existsSync(fileLookup) ? 200 : 404;
       const statSize = statSync(fileLookup).size + statSync(injectedCSS).size;
