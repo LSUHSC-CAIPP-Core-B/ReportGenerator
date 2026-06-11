@@ -1,47 +1,43 @@
-import { ReportBuilder } from '../ReportBuilder.js';
-import { isDescendant, iterateGroups } from '../utils/groupTree.js';
+import type { ReportBuilder } from '../ReportBuilder.ts';
+import { isDescendant, iterateGroups } from '../utils/groupTree.ts';
 
 export class DragDropManager {
-  /** @type {ReportBuilder} */
-  #report;
+  private report: ReportBuilder;
 
-  /**
-   * @param {ReportBuilder} report
-   */
-  constructor(report) {
-    this.#report = report;
+  constructor(report: ReportBuilder) {
+    this.report = report;
   }
 
-  /**
-   * @param {string} groupId
-   */
-  attachGroupEvents(groupId) {
-    const groupManager = this.#report.getGroupManager();
-    const insertManager = this.#report.getPendingInsertManager();
-    const elementManager = this.#report.getElementManager();
-    const layoutManager = this.#report.getLayoutManager();
+  attachGroupEvents(groupId: string) {
+    const groupManager = this.report.getGroupManager();
+    const insertManager = this.report.getPendingInsertManager();
+    const elementManager = this.report.getElementManager();
+    const layoutManager = this.report.getLayoutManager();
 
     const groupRenderer = groupManager.getRenderer();
+    const $group = groupManager.getGroup(groupId);
+    if (!$group) throw Error("Couldn't find group: " + groupId);
 
-    const { menuEntry: menu, content: group } = groupManager.getGroup(groupId);
+    const { menuEntry: menu, content: group } = $group;
 
     menu.addEventListener('dragstart', (event) => {
-      event.dataTransfer.setData('text/group-id', groupId);
-      this.#report.toggleFrames(false);
+      const dataTransfer = event.dataTransfer;
+      dataTransfer?.setData('text/group-id', groupId);
+      this.report.toggleFrames(false);
     });
 
     group.addEventListener('dragstart', (_event) => {
       layoutManager.toggleScrolling(true);
-      this.#report.toggleFrames(false);
+      this.report.toggleFrames(false);
     });
 
     menu.addEventListener('dragend', (_event) => {
-      this.#report.toggleFrames(true);
+      this.report.toggleFrames(true);
     });
 
     group.addEventListener('dragend', (_event) => {
       layoutManager.toggleScrolling(false);
-      this.#report.toggleFrames(true);
+      this.report.toggleFrames(true);
     });
 
     menu.addEventListener('dragover', (event) => {
@@ -78,7 +74,7 @@ export class DragDropManager {
     });
 
     menu.addEventListener('dragleave', (event) => {
-      if (!group.contains(event.relatedTarget)) insertManager.removeInsertMarker();
+      if (!group.contains(event.relatedTarget as Node)) insertManager.removeInsertMarker();
       groupRenderer.toggleDragEffect(groupId, false);
     });
 
@@ -91,8 +87,8 @@ export class DragDropManager {
       event.preventDefault();
       groupRenderer.toggleDragEffect(groupId, false);
 
-      const elementId = event.dataTransfer.getData('text/element-id');
-      const sourceGroupId = event.dataTransfer.getData('text/source-group-id');
+      const elementId = event.dataTransfer?.getData('text/element-id');
+      const sourceGroupId = event.dataTransfer?.getData('text/source-group-id');
 
       if (elementId && sourceGroupId) {
         const targetGroupId = groupId;
@@ -104,7 +100,7 @@ export class DragDropManager {
       }
 
       const targetId = groupId;
-      const sourceId = event.dataTransfer.getData('text/group-id');
+      const sourceId = event.dataTransfer?.getData('text/group-id');
       if (!sourceId || sourceId === targetId) return;
       if (isDescendant(groupManager, sourceId, targetId)) return;
 
@@ -122,12 +118,14 @@ export class DragDropManager {
       groupRenderer.toggleDragEffect(groupId, false);
       layoutManager.toggleScrolling(false);
 
-      const elementId = event.dataTransfer.getData('text/element-id');
-      const sourceGroupId = event.dataTransfer.getData('text/source-group-id');
+      const elementId = event.dataTransfer?.getData('text/element-id');
+      const sourceGroupId = event.dataTransfer?.getData('text/source-group-id');
       if (!elementId || !sourceGroupId) return;
 
-      const { elements: children } = groupManager.getGroup(groupId);
+      const $group = groupManager.getGroup(groupId);
+      if (!$group) return;
 
+      const { elements: children } = $group;
       const { clientY: mouseY } = event;
 
       for (let index = 0; index < children.length; index++) {
@@ -141,7 +139,7 @@ export class DragDropManager {
 
         const outOfBounds = mouseY < top || mouseY > bottom;
         const withinTop = mouseY <= top + selectionSize;
-        const withinBottom = mouseY > bottom - selectionSize;
+        const withinBottom = mouseY > bottom - selectionSize ? 1 : 0;
 
         if (outOfBounds) continue;
         else if (withinTop || withinBottom)
@@ -164,12 +162,14 @@ export class DragDropManager {
   /**
    * @param {string} elementId
    */
-  attachElementEvents(elementId) {
-    const groupManager = this.#report.getGroupManager();
-    const elementManager = this.#report.getElementManager();
+  attachElementEvents(elementId: string) {
+    const groupManager = this.report.getGroupManager();
+    const elementManager = this.report.getElementManager();
     const elementRenderer = elementManager.getRenderer();
+    const $element = elementManager.getElement(elementId);
+    if (!$element) throw new Error("Couldn't find element: " + elementId);
 
-    const { node: element } = elementManager.getElement(elementId);
+    const { node: element } = $element;
 
     element.addEventListener('dragover', (_event) => {
       elementRenderer.toggleInsertionOverlay(elementId, true);
@@ -180,7 +180,7 @@ export class DragDropManager {
     });
 
     element.addEventListener('dragstart', (event) => {
-      let groupId = null;
+      let groupId = '';
 
       iterateGroups(groupManager, 0, ({ identifier, elements }) => {
         const inGroup = elements.some(({ identifier }) => identifier === elementId);
@@ -189,9 +189,11 @@ export class DragDropManager {
         return false;
       });
 
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/element-id', elementId);
-      event.dataTransfer.setData('text/source-group-id', groupId);
+      if (groupId === '') return;
+
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer?.setData('text/element-id', elementId);
+      event.dataTransfer?.setData('text/source-group-id', groupId);
       elementRenderer.toggleDragEffect(elementId, true);
       elementRenderer.toggleOverlay(true);
     });

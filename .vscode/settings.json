@@ -16,5 +16,6 @@
     "source.fixAll.biome": "explicit"
   },
   "editor.formatOnSave": true,
-  "files.autoSave": "onFocusChange"
+  "files.autoSave": "onFocusChange",
+  "deno.enable": true
 }

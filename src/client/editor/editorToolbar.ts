@@ -1,15 +1,21 @@
 import { setBlockType, toggleMark } from 'https://esm.sh/prosemirror-commands';
 
 export class EditorToolbar {
+  toolbar: HTMLElement;
+  view: null;
+
+  _documentMouseDownHandler: any;
+
   constructor() {
     this.#initalizeElements();
 
     this.view = null;
 
-    this.toolbar.addEventListener('mousedown', (e) => {
-      e.preventDefault();
+    this.toolbar.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      const target = event.target as HTMLElement;
 
-      const btn = e.target.closest('button');
+      const btn = target.closest('button');
       if (!btn || !this.view) return;
 
       const { state, dispatch } = this.view;
@@ -58,8 +64,8 @@ export class EditorToolbar {
     document.body.appendChild(this.toolbar);
 
     const mappingFn =
-      (key, iconPrefix = '') =>
-      (v) => {
+      (key: string, iconPrefix = '') =>
+      (v: string) => {
         const button = document.createElement('button');
         button.dataset[key] = v;
 
@@ -69,11 +75,7 @@ export class EditorToolbar {
         return button;
       };
 
-    /**
-     * @param {HTMLElement} parent
-     * @param {HTMLElement} child
-     */
-    const reducingFn = (parent, child) => {
+    const reducingFn = (parent: HTMLElement, child: HTMLElement) => {
       parent.appendChild(child);
       return parent;
     };
@@ -106,7 +108,17 @@ export class EditorToolbar {
     return element;
   }
 
-  bind(view) {
+  bind(view: {
+    dom: {
+      addEventListener: (
+        arg0: string,
+        arg1: {
+          (arg0: string, _mouseUpHandler: any): void;
+          (arg0: string, _keyUpHandler: any): void;
+        },
+      ) => void;
+    };
+  }) {
     // Remove old listeners
     if (this.view) {
       this.view.dom.removeEventListener('mouseup', this._mouseUpHandler);
@@ -123,7 +135,7 @@ export class EditorToolbar {
     view.dom.addEventListener('keyup', this._keyUpHandler);
 
     if (!this._documentMouseDownHandler) {
-      this._documentMouseDownHandler = (e) => {
+      this._documentMouseDownHandler = (e: { target: Node }) => {
         if (!this.toolbar.contains(e.target)) {
           this.hide();
         }
@@ -131,6 +143,12 @@ export class EditorToolbar {
 
       document.addEventListener('mousedown', this._documentMouseDownHandler);
     }
+  }
+  _mouseUpHandler(arg0: string, _mouseUpHandler: any) {
+    throw new Error('Method not implemented.');
+  }
+  _keyUpHandler(arg0: string, _keyUpHandler: any) {
+    throw new Error('Method not implemented.');
   }
 
   show() {
@@ -163,11 +181,12 @@ export class EditorToolbar {
     const marks = state.storedMarks || state.selection.$from.marks();
     const node = state.selection.$from.parent;
 
-    const hasMark = (type) => marks.some((mark) => mark.type === state.schema.marks[type]);
+    const hasMark = (type: string) =>
+      marks.some((mark: { type: any }) => mark.type === state.schema.marks[type]);
 
-    const matchesNode = (type, value) => node.attrs[type] === value;
+    const matchesNode = (type: string, value: string | number) => node.attrs[type] === value;
 
-    const toggleClass = (selector, condition) =>
+    const toggleClass = (selector: string, condition: boolean) =>
       this.toolbar.querySelector(selector)?.classList.toggle('active', condition);
 
     // markers
@@ -190,7 +209,7 @@ export class EditorToolbar {
     toggleClass('[data-align="justify"]', matchesNode('textAlign', 'justify'));
   }
 
-  setParagraphStyle(attrs) {
+  setParagraphStyle(attrs: { readonly [x: string]: any; textAlign?: any }) {
     const { state, dispatch } = this.view;
 
     const node = state.selection.$from.parent;

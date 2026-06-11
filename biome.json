@@ -14,7 +14,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["src/**", "templates/assets/**", "!templates/**/external"]
+    "includes": ["src/**", "!**/external"]
   },
   "formatter": {
     "enabled": true,

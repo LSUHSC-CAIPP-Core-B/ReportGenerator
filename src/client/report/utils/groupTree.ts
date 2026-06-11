@@ -1,21 +1,11 @@
-import { GroupManager } from '../managers/GroupManager.js';
-import { ReportGroup } from '../models/ReportGroup.js';
+import type { GroupManager } from '../managers/GroupManager.ts';
+import type { ReportGroup } from '../models/ReportGroup.ts';
 
-/**
- * @param { GroupManager } manager
- * @param { string } groupId
- * @returns { ReportGroup[] }
- */
-export function getDescendants(manager, groupId) {
+export function getDescendants(manager: GroupManager, groupId: string): ReportGroup[] {
   return getSubtree(manager, groupId).slice(1);
 }
 
-/**
- * @param { GroupManager } manager
- * @param { string } groupId
- * @returns { ReportGroup[] }
- */
-export function getSubtree(manager, groupId) {
+export function getSubtree(manager: GroupManager, groupId: string): ReportGroup[] {
   const startIndex = manager.getGroupIndex(groupId);
   if (startIndex === -1) return [];
 
@@ -33,13 +23,7 @@ export function getSubtree(manager, groupId) {
   return subtree;
 }
 
-/**
- * @param { GroupManager } manager
- * @param { string } parentId
- * @param { string } childId
- * @returns { boolean }
- */
-export function isDescendant(manager, parentId, childId) {
+export function isDescendant(manager: GroupManager, parentId: string, childId: string): boolean {
   let current = manager.getGroup(childId);
 
   while (current?.parentId) {
@@ -50,13 +34,11 @@ export function isDescendant(manager, parentId, childId) {
   return false;
 }
 
-/**
- *
- * @param { GroupManager } manager
- * @param { number } startIndex
- * @param { ( group: ReportGroup, index: number ) => (boolean | undefined) } callback
- */
-export function iterateGroups(manager, startIndex, callback) {
+export function iterateGroups(
+  manager: GroupManager,
+  startIndex: number,
+  callback: (group: ReportGroup, index: number) => boolean | void,
+) {
   const size = manager.getGroupOrderSize();
   for (let index = startIndex; index < size; index++) {
     const identifier = manager.getGroupId(index);

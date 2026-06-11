@@ -26,7 +26,7 @@
   {% element "script" -%}
     const macos = {{ os.name contains "macOS" | json }};
   {%- endelement %}
-  <script src="/assets/javascript/development.js" type="module" defer></script>
+  <script src="/client/development" type="module" defer></script>
   <link rel="stylesheet" href="/assets/css/development.css">
   {%- endif %}
 </head>
@@ -53,7 +53,7 @@
       {% comment -%} <!-- {% endcomment -%}
       {% comment -%} Why this? I don't like syntax errors... So it's a quick fix {% endcomment -%}
       <script type="module">
-        import { ReportBuilder } from '/assets/javascript/report/ReportBuilder.js';
+        import { ReportBuilder } from '/client/report/ReportBuilder';
         window.report = new ReportBuilder({{ project | json }}, document.querySelector('body > div.b-report > div.content'));
         document.querySelector('body > div.b-report > div.content > script[type=module]').remove();
       </script>

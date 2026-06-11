@@ -2,10 +2,12 @@
   "author": "Sebastian Sereno",
   "dependencies": {
     "express": "^5.2.1",
+    "fuse.js": "^7.4.2",
     "liquidjs": "^10.24.0",
     "mongoose": "^9.1.6",
     "node-json-db": "^2.4.2",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "ua-parser-js": "^2.0.9",
     "url": "^0.11.4"
   },
@@ -20,7 +22,7 @@
     "lefthook": "^2.0.15",
     "nodemon": "^3.1.11",
     "ts-loader": "^9.5.4",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "webpack": "^5.104.1",
     "webpack-cli": "^6.0.1",
     "webpack-node-externals": "^3.0.0"

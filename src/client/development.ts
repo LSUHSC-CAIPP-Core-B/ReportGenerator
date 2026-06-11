@@ -1,26 +1,29 @@
-import { CommandPalette } from './development/commands.js';
-import { SocketStatus } from './development/sockets.js';
-import { ReportBuilder } from './report/ReportBuilder.js';
+import { CommandPalette } from './development/commands.ts';
+import { SocketStatus } from './development/sockets.ts';
+import { ReportBuilder } from './report/ReportBuilder.ts';
 
 // Make the command palette
 const commandPalette = new CommandPalette({
   input: document.querySelector('#cmd-search'),
-  macos,
+  macos: (window as any).macos as boolean,
   overlay: document.querySelector('#cmd-palette .cmd-list'),
 });
 
 // Handle socket connections
 const status = new SocketStatus();
 
-const element = commandPalette.addAction({
-  callback: () => status.reconnect(),
-  closes: false,
-  description: 'Restart Socket',
-  icon: 'cloud-off',
-  label: 'Socket Status',
-});
+const element = commandPalette.addAction(
+  {
+    callback: () => status.reconnect(),
+    closes: false,
+    description: 'Restart Socket',
+    icon: 'cloud-off',
+    label: 'Socket Status',
+  },
+  false,
+);
 
-const label = element.querySelector('.label');
+const label = element.querySelector('.label') as HTMLElement;
 const classes = element.querySelector('.icon').classList;
 
 status.setConnectCallback(() => {
@@ -34,10 +37,10 @@ status.setDisconnectCallback(() => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  addReportActions(/** @type { ReportBuilder } */ (window.report));
+  addReportActions(/** @type { ReportBuilder } */ ((window as any).report));
   addGeneralActions();
 
-  addEventListeners(/** @type {ReportBuilder} */ (window.report));
+  addEventListeners(/** @type {ReportBuilder} */ ((window as any).report));
 });
 
 /**
@@ -214,7 +217,7 @@ async function addGeneralActions() {
       })),
     });
 
-    if (!window.report)
+    if (!(window as any).report)
       commandPalette.addAction({
         callback: (_value) => {},
         icon: 'layers-plus',

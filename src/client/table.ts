@@ -1,8 +1,7 @@
-/**
- * @param {HTMLTableElement} element
- * @param {string} data
- */
-function loadCSVTable(data) {
+import type { TableData } from '../shared/types.ts';
+import { querySelectorAll } from './utils.ts';
+
+function loadCSVTable(data: string) {
   return data
     .split('\n')
     .filter((line) => !line.match(/^$/g))
@@ -18,38 +17,46 @@ function loadCSVTable(data) {
 }
 
 export class TableHandler {
-  /** @param {HTMLTableElement} element */
-  static async fromElement(element) {
+  data: TableData[];
+  initial_data: TableData[];
+
+  rows!: number;
+  columns!: number;
+  page: number = 0;
+  max_pages!: number;
+
+  element!: HTMLElement;
+  sort_direction!: number;
+
+  page_display?: any;
+  prev_column_sort?: any;
+  column_sort?: any;
+
+  static async fromElement(element: HTMLTableElement) {
     const ariaTableAttr = element.attributes.getNamedItem('aria-table');
     if (ariaTableAttr == null) return;
 
-    const url = new URL(ariaTableAttr.nodeValue, element.baseURI);
+    const url = new URL(ariaTableAttr.nodeValue ?? '', element.baseURI);
     const ariaFileTypeAttr = element.attributes.getNamedItem('aria-filetype');
-    const fileType = ariaFileTypeAttr.nodeValue || 'csv';
+    const fileType = ariaFileTypeAttr?.nodeValue || 'csv';
 
     const response = await fetch(url);
     const data = await response.text();
-    let content;
+    let content: TableData[];
 
-    switch (fileType) {
-      case 'csv':
-        content = loadCSVTable(data);
-    }
+    if (fileType === 'csv') content = loadCSVTable(data);
+    else return null;
 
     return new TableHandler(element, content).maxRows(15).load();
   }
 
-  /**
-   * @param {HTMLElement} element
-   * @param {(string | number)[][]} data
-   */
-  constructor(element, data) {
+  constructor(element: HTMLElement, data: TableData[]) {
     const orderStr = element.attributes.getNamedItem('aria-column-order')?.value;
     const indexRows = element.attributes.getNamedItem('aria-row-index') != null;
 
     const order = orderStr?.split(',')?.map((o) => Number.parseInt(o, 10));
-    let mapped_data = this.#reorderData(data, order);
-    if (indexRows) mapped_data = this.#indexData(mapped_data);
+    let mapped_data = this.reorderData(data, order);
+    if (indexRows) mapped_data = this.indexData(mapped_data);
 
     this.data = mapped_data.slice(1);
     this.initial_data = this.data;
@@ -57,14 +64,10 @@ export class TableHandler {
     const headers = mapped_data[0];
     if (indexRows) headers[0] = 'INDEX';
 
-    this.#createActions(element).#makeHeaders(headers).maxRows(10);
+    this.createActions(element).makeHeaders(headers).maxRows(10);
   }
 
-  /**
-   * @param {number} rows Rows to display
-   * @returns {TableHandler}
-   */
-  maxRows(rows) {
+  maxRows(rows: number) {
     this.rows = Math.max(rows, 10);
     this.max_pages = Math.floor(this.data.length / this.rows);
 
@@ -79,7 +82,7 @@ export class TableHandler {
     // Add new elements
     new Array(toAdd)
       .fill('div')
-      .map(document.createElement, document)
+      .map((e) => document.createElement(e), document)
       .map((e, _i) => {
         e.classList.add('table-row', 'row');
         return e;
@@ -89,31 +92,29 @@ export class TableHandler {
     return this;
   }
 
-  /**
-   * @param {Number} page
-   * @returns {TableHandler}
-   */
-  load(page = 0) {
+  load(page: number = 0): TableHandler {
+    this.rows ??= 15;
+
     this.page = page;
     var offset = page * this.rows;
 
-    const existing = [...this.element.querySelectorAll('.table-row.row')];
+    const existing = querySelectorAll(this.element, '.table-row.row');
 
     const selected = this.data.slice(offset, offset + this.rows);
 
     selected.forEach((row, i) => {
       const rowElement = existing[i];
-      const columns = [...rowElement.querySelectorAll('.table-entry .entry-text')];
+      const columns = querySelectorAll(rowElement, '.table-entry .entry-text');
 
       row.forEach((data, j) => {
-        if (columns[j] == null) rowElement.appendChild(this.#createEntry(data));
-        else columns[j].innerText = data;
+        if (columns[j] == null) rowElement.appendChild(this.createEntry(data));
+        else columns[j].innerText = data.toString();
       });
     });
 
     if (selected.length < this.rows) {
       existing.slice(selected.length).forEach((row) => {
-        row.querySelectorAll('.table-entry .entry-text').forEach((column) => {
+        querySelectorAll(row, '.table-entry .entry-text').forEach((column) => {
           column.innerText = '';
         });
       });
@@ -123,36 +124,29 @@ export class TableHandler {
     return this;
   }
 
-  /**
-   * @param {String} content
-   * @returns {HTMLElement}
-   */
-  #createEntry(content) {
+  private createEntry(content: string | number): HTMLElement {
     const entry = document.createElement('span');
     entry.classList.add('table-entry');
 
     const holder = document.createElement('p');
     holder.classList.add('entry-text');
-    holder.innerText = content;
+    holder.innerText = content.toString();
 
     entry.appendChild(holder);
     return entry;
   }
 
-  /**
-   * @param {Event} event
-   * @returns {TableHandler}
-   */
-  #searchEvent(event) {
-    /** @type {HTMLInputElement} */
-    const element = event.target;
+  private searchEvent(event: Event): TableHandler {
+    const element: HTMLInputElement = event.target as HTMLInputElement;
     const searchStr = element.value;
 
     const escaped = RegExp.escape(searchStr.toLowerCase());
     const search = new RegExp(escaped, 'gi');
 
     this.data = this.initial_data.filter((row) => {
-      return row.map((data) => data.toString().match(search)).reduce((a, b) => a || b, false);
+      return row
+        .map((data) => data.toString().match(search))
+        .reduce((a, b) => a || b != null, false);
     });
 
     this.max_pages = Math.floor(this.data.length / this.rows);
@@ -161,21 +155,19 @@ export class TableHandler {
     return this.load();
   }
 
-  /**
-   * @param {Event} event
-   * @returns {TableHandler}
-   */
-  #sort(event) {
-    /** @type {HTMLElement} */
-    const element = event.target;
+  private sort(event: Event): TableHandler {
+    const element: HTMLElement = event.target as HTMLElement;
     const parent = element.parentElement;
 
-    const parentNode = parent.getAttributeNode('aria-column');
-
+    const parentNode = parent?.getAttributeNode('aria-column');
     const attr = parentNode || element.getAttributeNode('aria-column');
 
     const target = !parentNode ? element : parent;
-    [...target.parentElement.children].forEach((child) => {
+    if (!target) throw new Error("Parent couldn't be found");
+
+    const children = target.parentElement?.children ?? [];
+
+    [...children].forEach((child) => {
       child.classList.toggle('sort-desc', false);
       child.classList.toggle('sort-asce', false);
     });
@@ -201,12 +193,7 @@ export class TableHandler {
     return this.load(this.page);
   }
 
-  /**
-   *
-   * @param {Number} offset
-   * @returns {TableHandler}
-   */
-  #paginate(offset = 0) {
+  private paginate(offset: number = 0): TableHandler {
     const page = Math.min(
       // Make greater than 0
       Math.max(this.page + offset, 0),
@@ -217,11 +204,7 @@ export class TableHandler {
     return this.load(page);
   }
 
-  /**
-   * @param {HTMLElement} element
-   * @returns {TableHandler}
-   */
-  #createActions(element) {
+  private createActions(element: HTMLElement): TableHandler {
     const [
       SEARCH_LABEL,
       SEARCH,
@@ -233,7 +216,7 @@ export class TableHandler {
       FORWARD,
       FAST_FORWARDS,
     ] = ['label', 'input', 'span', 'div', 'span', 'span', 'span', 'span', 'span'].map(
-      document.createElement,
+      (e) => document.createElement(e),
       document,
     );
 
@@ -241,7 +224,7 @@ export class TableHandler {
     SEARCH_LABEL.appendChild(SEARCH);
     SEARCH_LABEL.classList.add('table-search');
 
-    SEARCH.addEventListener('input', (event) => this.#searchEvent(event));
+    SEARCH.addEventListener('input', (event) => this.searchEvent(event));
 
     CONTROLS.appendChild(FAST_BACKWARDS);
     CONTROLS.appendChild(BACK);
@@ -250,19 +233,19 @@ export class TableHandler {
     CONTROLS.appendChild(FAST_FORWARDS);
     CONTROLS.classList.add('table-controls');
 
-    FAST_BACKWARDS.addEventListener('click', (_event) => this.#paginate(Number.NEGATIVE_INFINITY));
+    FAST_BACKWARDS.addEventListener('click', (_event) => this.paginate(Number.NEGATIVE_INFINITY));
     FAST_BACKWARDS.classList.add('control-clickable');
     FAST_BACKWARDS.append('Start');
 
-    BACK.addEventListener('click', (_event) => this.#paginate(-1));
+    BACK.addEventListener('click', (_event) => this.paginate(-1));
     BACK.classList.add('control-clickable');
     BACK.append('Prev');
 
-    FORWARD.addEventListener('click', (_event) => this.#paginate(1));
+    FORWARD.addEventListener('click', (_event) => this.paginate(1));
     FORWARD.classList.add('control-clickable');
     FORWARD.append('Next');
 
-    FAST_FORWARDS.addEventListener('click', (_event) => this.#paginate(Number.POSITIVE_INFINITY));
+    FAST_FORWARDS.addEventListener('click', (_event) => this.paginate(Number.POSITIVE_INFINITY));
     FAST_FORWARDS.classList.add('control-clickable');
     FAST_FORWARDS.append('End');
 
@@ -278,46 +261,33 @@ export class TableHandler {
     return this;
   }
 
-  /**
-   * @param {Object[]} headers
-   * @returns {TableHandler}
-   */
-  #makeHeaders(headers) {
-    this.columns = headers?.length || 0;
+  private makeHeaders(headers: TableData): TableHandler {
+    this.columns = headers.length || 0;
 
-    this.element.style.setProperty('--cols', this.columns);
+    this.element.style.setProperty('--cols', this.columns.toString());
 
     const header = document.createElement('div');
     header.classList.add('table-row', 'header');
     this.element.appendChild(header);
 
-    headers.map(this.#createEntry, this).forEach((column, index) => {
+    headers.map(this.createEntry, this).forEach((column, index) => {
       const attr = document.createAttribute('aria-column');
       attr.value = `${index}`;
       column.attributes.setNamedItem(attr);
 
-      column.addEventListener('click', (event) => this.#sort(event));
+      column.addEventListener('click', (event) => this.sort(event));
       header.appendChild(column);
     }, header);
 
     return this;
   }
 
-  /**
-   * @param {(string | number)[][]} data
-   * @param {number[] | undefined} order
-   * @returns {(string | number)[][]}
-   */
-  #reorderData(data, order) {
+  private reorderData(data: TableData[], order: number[] | undefined): TableData[] {
     if (!order) return data;
     return data.map((row) => order.map((o) => row[o]));
   }
 
-  /**
-   * @param {(string | number)[][]} data
-   * @returns {(string | number)[][]}
-   */
-  #indexData(data) {
+  private indexData(data: TableData[]): TableData[] {
     return data.map((row, i) => [i, ...row]);
   }
 }

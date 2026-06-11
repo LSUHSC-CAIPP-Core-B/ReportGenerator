@@ -2,6 +2,6 @@
   "$schema": "https://json.schemastore.org/nodemon.json",
   "exec": "npx ts-node -r dotenv/config ./src/server/app.ts",
   "ext": "ts,json",
-  "ignore": ["src/**/*.spec.ts"],
+  "ignore": ["src/**/*.spec.ts", "src/client/**"],
   "watch": ["src/"]
 }
