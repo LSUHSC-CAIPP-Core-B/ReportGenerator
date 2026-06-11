@@ -1,4 +1,5 @@
 import { resolve as resolvePath } from 'node:path';
+import { cwd } from 'node:process';
 import { URL } from 'node:url';
 import { name as APP_NAME } from '../../package.json';
 
@@ -10,7 +11,6 @@ const {
   DATABASE_PASS,
   DATABASE_NAME,
   WEBSERVER_PORT: serverPort,
-  TEMPLATE_DIRECTORY: templateFolder,
 } = process.env;
 
 // Lets generate the url
@@ -30,7 +30,7 @@ try {
 // Export needed entries
 export const COMPLETE_DATABASE_URL = urlObject.toString().replace(/^[^:]+/g, dbProtocol || 'mongo');
 
-export const TEMPLATE_DIRECTORY = resolvePath(__dirname, '..', templateFolder || 'client');
+export const ASSETS_DIRECTORY = resolvePath(cwd(), 'src', 'assets');
 export const WEBSERVER_PORT = _serverPort;
 
 export { DATABASE_URL, DATABASE_USER, DATABASE_PASS, DATABASE_NAME, APP_NAME };

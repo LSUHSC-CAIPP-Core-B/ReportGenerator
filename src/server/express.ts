@@ -1,11 +1,12 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
-import { join as joinPath } from 'node:path';
+import { join as joinPath, resolve as resolvePath } from 'node:path';
 import express, { type Request, type Response, static as staticFiles } from 'express';
 import { Types } from 'mongoose';
 import { UAParser } from 'ua-parser-js';
-import { TEMPLATE_DIRECTORY } from './constants';
+import { ASSETS_DIRECTORY } from './constants';
 import { ProjectModel } from './database/schemas';
 import liquid from './liquidjs';
+import ts2jsRouter from './middleware/ts2js';
 import projects, { reduceReport } from './projects';
 import { ProjectError } from './projects/types';
 import { catchErrorTyped, getParam } from './utilities';
@@ -13,9 +14,11 @@ import { catchErrorTyped, getParam } from './utilities';
 const app = express();
 
 app.engine('html', liquid.express());
-app.set('views', TEMPLATE_DIRECTORY);
+app.set('views', ASSETS_DIRECTORY);
 app.set('view engine', 'liquid');
-app.use('/assets', staticFiles(`${TEMPLATE_DIRECTORY}/assets`));
+app.use('/assets', staticFiles(ASSETS_DIRECTORY));
+
+app.use(['/client', '/shared'], ts2jsRouter);
 
 app.get(['/', '/:identifier'], async (req: Request, res: Response) => {
   const { identifier: projectIds } = req.params;
@@ -34,7 +37,7 @@ app.get(['/', '/:identifier'], async (req: Request, res: Response) => {
   const parser = new UAParser(req.headers as Record<string, string>);
   const os = { ...parser.getOS() };
 
-  res.render('builtin/home.html', { os, project, reports, timestamp: new Date() });
+  res.render('home.html', { os, project, reports, timestamp: new Date() });
 });
 
 app.delete('/:identifier', async (req: Request, res: Response) => {
@@ -92,7 +95,7 @@ app.get(
     const fileLookup = joinPath(lookup[0].absolutePath, path);
 
     if (fileLookup.endsWith('glimma.min.css')) {
-      const injectedCSS = joinPath(TEMPLATE_DIRECTORY, 'assets', 'css', 'iframe.css');
+      const injectedCSS = joinPath(ASSETS_DIRECTORY, 'css', 'iframe.css');
 
       const status = existsSync(fileLookup) ? 200 : 404;
       const statSize = statSync(fileLookup).size + statSync(injectedCSS).size;

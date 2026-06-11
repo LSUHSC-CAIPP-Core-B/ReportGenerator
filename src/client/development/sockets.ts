@@ -1,16 +1,17 @@
-import { io } from '../external/socket.io-4.7.5.esm.min.js';
+// import { io } from '../external/socket.io-4.7.5.esm.min.js';
+import io from 'socket.io-client';
 
 export class SocketStatus {
-  /**
-   * @param {Object} options
-   * @param {Function|null} [options.onConnect]
-   * @param {Function|null} [options.onDisconnect]
-   */
-  constructor({ onConnect = null, onDisconnect = null } = {}) {
-    /**
-     * User callbacks
-     * @type {Function|null}
-     */
+  onConnect: Function | null;
+  onDisconnect: Function | null;
+  socket: any;
+  connectListener: () => void;
+  disconnectListener: () => void;
+
+  constructor({
+    onConnect = null,
+    onDisconnect = null,
+  }: { onConnect?: Function | null; onDisconnect?: Function | null } = {}) {
     this.onConnect = onConnect;
     this.onDisconnect = onDisconnect;
 
@@ -44,14 +45,14 @@ export class SocketStatus {
   /**
    * @param {Function|null} callback
    */
-  setConnectCallback(callback) {
+  setConnectCallback(callback: Function | null) {
     this.onConnect = callback;
   }
 
   /**
    * @param {Function|null} callback
    */
-  setDisconnectCallback(callback) {
+  setDisconnectCallback(callback: Function | null) {
     this.onDisconnect = callback;
   }
 

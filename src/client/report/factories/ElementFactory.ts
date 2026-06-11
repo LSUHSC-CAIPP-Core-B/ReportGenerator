@@ -1,25 +1,32 @@
-import { EditorToolbar } from '../../editor/editorToolbar.js';
-import { createProseMirrorEditor } from '../../editor/prosemirrorEditor.js';
-import { handle } from '../../iframe.js';
-import { TableHandler } from '../../table.js';
-import { ReportElement } from '../models/ReportElement.js';
-import { ReportBuilder } from '../ReportBuilder.js';
-import { createIdentifier } from '../utils/identifiers.js';
+import type {
+  DescriptionElementOptions,
+  ElementOptions,
+  FrameElementOptions,
+  ImageElementOptions,
+  ShellElementOptions,
+  TableElementOptions,
+} from '../../../shared/types.ts';
+import { EditorToolbar } from '../../editor/editorToolbar.ts';
+import { createProseMirrorEditor } from '../../editor/prosemirrorEditor.ts';
+import { handle } from '../../iframe.ts';
+import { TableHandler } from '../../table.ts';
+import { ReportElement } from '../models/ReportElement.ts';
+import type { ReportBuilder } from '../ReportBuilder.ts';
+import { createIdentifier } from '../utils/identifiers.ts';
 
 export class ElementFactory {
-  #toolbar = new EditorToolbar();
+  private toolbar = new EditorToolbar();
+  private report: ReportBuilder;
 
-  /** @type {ReportBuilder} */
-  #report;
-
-  /**
-   * @param {ReportBuilder} report
-   */
-  constructor(report) {
-    this.#report = report;
+  constructor(report: ReportBuilder) {
+    this.report = report;
   }
 
-  #createElementShell({ identifier, icon = 'group', details = 'Element Group' }) {
+  private createElementShell({
+    identifier,
+    icon = 'group',
+    details = 'Element Group',
+  }: ShellElementOptions) {
     const element = document.createElement('div');
     element.classList.add('b-element');
     element.setAttribute('aria-identifier', identifier);
@@ -49,7 +56,7 @@ export class ElementFactory {
     return element;
   }
 
-  createElementFromType(options) {
+  createElementFromType(options: ElementOptions) {
     console.log(options);
     const { type } = options;
 
@@ -62,16 +69,14 @@ export class ElementFactory {
       data: {
         description: `Unsupported element type: ${type}`,
       },
+      type: 'description',
     });
   }
 
-  /**
-   * @param {Object} options
-   */
-  createDescription(options = {}) {
-    const { data = {}, identifier = createIdentifier() } = options;
-    const { description = 'Sample description' } = data;
-    const shell = this.#createElementShell({ details: 'Description', icon: 'text', identifier });
+  createDescription(options: DescriptionElementOptions = { type: 'description' }) {
+    const { data, identifier = createIdentifier() } = options;
+    const { description = 'Sample description' } = data ?? {};
+    const shell = this.createElementShell({ details: 'Description', icon: 'text', identifier });
     const mount = document.createElement('div');
     mount.classList.add('pm-mount');
     shell.appendChild(mount);
@@ -87,7 +92,7 @@ export class ElementFactory {
       content: description,
       mount,
       onBlur: (content) => {
-        this.#report.emit('element:update', {
+        this.report.emit('element:update', {
           data: { description: content },
           elementId: element.identifier,
         });
@@ -97,21 +102,21 @@ export class ElementFactory {
       },
     });
 
-    this.#toolbar.bind(view);
+    this.toolbar.bind(view);
     return element;
   }
 
   /**
    * @param {Object} options
    */
-  createImageElement(options = {}) {
+  createImageElement(options: ImageElementOptions = { type: 'image' }) {
     const { identifier = createIdentifier(), data } = options;
-    const { file, description } = data;
+    const { file, description } = data ?? {};
 
     if (!file) return null;
-    const project = this.#report.getProjectId();
+    const project = this.report.getProjectId();
 
-    const shell = this.#createElementShell({ icon: 'image', identifier });
+    const shell = this.createElementShell({ icon: 'image', identifier });
     const image = document.createElement('img');
     image.classList.add('b-image');
     image.src = `database/${project}/${file}/$`;
@@ -137,14 +142,14 @@ export class ElementFactory {
   /**
    * @param {Object} options
    */
-  createFrameElement(options = {}) {
-    const { identifier = createIdentifier(), data = {} } = options;
-    const { file } = data;
+  createFrameElement(options: FrameElementOptions = { type: 'frame' }) {
+    const { identifier = createIdentifier(), data } = options;
+    const { file } = data ?? {};
 
     if (!file) return null;
-    const project = this.#report.getProjectId();
+    const project = this.report.getProjectId();
 
-    const shell = this.#createElementShell({ icon: 'pointer', identifier });
+    const shell = this.createElementShell({ icon: 'pointer', identifier });
     const frame = document.createElement('iframe');
     frame.classList.add('b-frame');
     frame.src = `database/${project}/${file}/$`;
@@ -163,13 +168,13 @@ export class ElementFactory {
   /**
    * @param {Object} options
    */
-  createTableElement(options = {}) {
-    const { identifier = createIdentifier(), data = {} } = options;
-    const { type, file, extras } = data;
+  createTableElement(options: TableElementOptions = { type: 'table' }) {
+    const { identifier = createIdentifier(), data } = options;
+    const { type = 'csv', file, extras } = data ?? {};
     if (!file) return null;
-    const project = this.#report.getProjectId();
+    const project = this.report.getProjectId();
 
-    const shell = this.#createElementShell({ icon: 'table-2', identifier });
+    const shell = this.createElementShell({ icon: 'table-2', identifier });
     const table = document.createElement('table');
     table.classList.add('b-table');
 

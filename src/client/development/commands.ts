@@ -1,43 +1,52 @@
-import Fuse from '../external/fuse.js-7.3.0.js';
+import Fuse from 'fuse.js';
+import type {
+  CommandAction,
+  CommandActionOptions,
+  CommandActionStack,
+} from '../../shared/types.ts';
 
-/**
- * @param {number} value
- * @param {number} min
- * @param {number} max
- * @returns {number}
- */
-function clamp(value, min, max) {
+function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-/**
- * @param {number} value
- * @param {number} min
- * @param {number} max
- * @returns {boolean}
- */
-function between(value, min, max) {
+function between(value: number, min: number, max: number): boolean {
   return value >= min && value <= max;
 }
 
 export class CommandPalette {
-  /**
-   * @param {Object} options
-   * @param {HTMLInputElement} options.input
-   * @param {HTMLElement} options.overlay
-   * @param {number} [options.display_amount]
-   * @param {boolean} [options.macos]
-   */
-  constructor({ input, overlay, display_amount = 8, macos = false }) {
+  stack: CommandActionStack[];
+  actions: CommandAction[];
+  currentActions: CommandAction[];
+
+  lastKeyChar: boolean;
+  originalInput: string;
+  shouldAutocomplete: boolean;
+
+  input: HTMLInputElement;
+  overlay: HTMLElement;
+  entries: HTMLElement;
+  charReturn: HTMLElement;
+
+  display_amount: number;
+
+  macos: boolean;
+  isOpen: boolean = false;
+  forceNoClose: boolean;
+
+  constructor({
+    input,
+    overlay,
+    display_amount = 8,
+    macos = false,
+  }: { input: HTMLInputElement; overlay: HTMLElement; display_amount?: number; macos?: boolean }) {
     // For tabs
     this.stack = [];
     this.currentActions = [];
-    this.context = {};
 
     // For auto complete
     this.lastKeyChar = false;
     this.originalInput = '';
-    this.autocomplete = false;
+    this.shouldAutocomplete = false;
 
     // For clicking
     this.forceNoClose = false;
@@ -47,7 +56,10 @@ export class CommandPalette {
     this.overlay = overlay;
     this.macos = macos ?? false;
     this.display_amount = Math.max(display_amount, 5);
-    this.entries = overlay.querySelector('.cmd-entries');
+
+    const cmdEntries = overlay.querySelector('.cmd-entries');
+    if (cmdEntries == null) throw Error('Overlay needs a child element with class `cmd-entries`');
+    this.entries = cmdEntries as HTMLElement;
 
     this.keydownListener = this.keydownListener.bind(this);
     this.overlayMouseMoveListener = this.overlayMouseMoveListener.bind(this);
@@ -68,15 +80,15 @@ export class CommandPalette {
     this.charReturn.classList.add('icon-corner-down-left', 'selection');
   }
 
-  #pushTab(actions, placeholder = '', parentAction = null) {
+  private pushTab(actions: CommandAction[], placeholder = '', parentAction?: CommandAction) {
     this.stack.push({
       actions: this.currentActions,
       parentAction,
-      value: this.autocomplete ? this.originalInput : this.input.value,
+      value: this.shouldAutocomplete ? this.originalInput : this.input.value,
     });
 
     // Let's reset auto complete
-    this.autocomplete = false;
+    this.shouldAutocomplete = false;
     this.originalInput = '';
 
     this.currentActions = actions;
@@ -85,26 +97,26 @@ export class CommandPalette {
     });
 
     this.input.value = placeholder;
-    this.#renderCurrentActions();
+    this.renderCurrentActions();
   }
 
-  #popTab() {
+  private popTab() {
     const previous = this.stack.pop();
     if (!previous) return;
 
     this.currentActions = previous.actions;
     this.input.value = previous.value;
 
-    this.#renderCurrentActions();
+    this.renderCurrentActions();
   }
 
-  #getRecentCommands() {
-    return [...this.entries.querySelectorAll('.cmd-entry:not([hidden])')].map((el) =>
-      this.currentActions.find((a) => a.element === el),
-    );
+  private getRecentCommands() {
+    return [...this.entries.querySelectorAll('.cmd-entry:not([hidden])')]
+      .map((el) => this.currentActions.find((a) => a.element === el))
+      .filter((a) => a != null);
   }
 
-  #autocomplete() {
+  private autocomplete() {
     // Must have been a delete key or something
     if (!this.lastKeyChar) return;
 
@@ -113,7 +125,7 @@ export class CommandPalette {
     const query = this.originalInput.trimStart().toLowerCase();
     if (!query) return;
 
-    const cmds = this.#getRecentCommands();
+    const cmds = this.getRecentCommands();
     const selected = cmds.find(({ label }) => {
       var lower = label.toLowerCase();
       var index = lower.indexOf(query);
@@ -128,14 +140,14 @@ export class CommandPalette {
     const textIndex = selected.label.toLowerCase().indexOf(query);
     const text = selected.label.substring(textIndex + query.length);
 
-    this.autocomplete = text.length !== 0;
-    if (!this.autocomplete) return;
+    this.shouldAutocomplete = text.length !== 0;
+    if (!this.shouldAutocomplete) return;
 
     this.input.value += text;
     this.input.setSelectionRange(length, length + text.length);
   }
 
-  #renderCurrentActions() {
+  private renderCurrentActions() {
     this.entries.innerHTML = '';
 
     this.currentActions.forEach((action) => {
@@ -143,9 +155,9 @@ export class CommandPalette {
       action.element.hidden = false;
     });
 
-    this.#executeSearch();
-    this.#validateSelector();
-    this.#updateDisplay();
+    this.executeSearch();
+    this.validateSelector();
+    this.updateDisplay();
   }
 
   /**
@@ -161,20 +173,20 @@ export class CommandPalette {
    *
    * @param {boolean} fromTab
    */
-  addAction(
+  addAction<B extends boolean, R extends B extends true ? CommandAction : HTMLElement>(
     {
       label,
       icon = 'dot',
       description,
       closes = true,
       callback,
-      tab: tabActions,
+      tab: tabActions = [],
       value,
       visibility = 'shown',
       truncate = 'end',
-    },
-    fromTab = false,
-  ) {
+    }: CommandActionOptions,
+    fromTab: B = false as B,
+  ): R {
     const element = document.createElement('span');
     element.classList.add('cmd-entry');
 
@@ -192,9 +204,18 @@ export class CommandPalette {
 
     element.append(iconEl, labelEl, descriptionEl);
 
-    const tab = tabActions?.map((action) => this.#addTabAction(action));
+    const tab = tabActions.map((action) => this.addTabAction(action));
 
-    const action = { callback, closes, description, element, label, tab, value, visibility };
+    const action: CommandAction = {
+      callback,
+      closes,
+      description,
+      element,
+      label,
+      tab,
+      value,
+      visibility,
+    };
 
     if (!fromTab) {
       this.entries.appendChild(element);
@@ -202,22 +223,16 @@ export class CommandPalette {
       if (this.stack.length === 0) this.currentActions.push(action);
     }
 
-    return fromTab ? action : element;
+    return (fromTab ? action : element) as R;
   }
 
-  /**
-   * @param {Object} options
-   */
-  #addTabAction(options) {
+  private addTabAction(options: CommandActionOptions) {
     const action = this.addAction(options, true);
     action.element.toggleAttribute('cmd-tab-element', true);
     return action;
   }
 
-  /**
-   * @param {KeyboardEvent} event
-   */
-  keydownListener(event) {
+  keydownListener(event: KeyboardEvent) {
     const isCommandK =
       (this.macos ? event.metaKey : event.ctrlKey) && event.key.toLowerCase() === 'k';
 
@@ -232,18 +247,16 @@ export class CommandPalette {
       });
   }
 
-  /**
-   * @param {HTMLElement} element
-   */
-  #select(element) {
-    const children = this.#getVisibleCommands();
+  private select(element: HTMLElement | null) {
+    const children = this.getVisibleCommands();
     if (children.length === 0) return;
-    if (!children.includes(element)) return;
+    if (element == null || !children.includes(element)) return;
 
     let action = this.currentActions.find((action) => action.element === element);
+    if (!action) return;
 
     if (action.tab) {
-      this.#pushTab(action.tab, '', action);
+      this.pushTab(action.tab, '', action);
       return false;
     }
 
@@ -254,24 +267,24 @@ export class CommandPalette {
       if (value != null && value !== undefined) action.parent.value = value;
 
       action = action.parent;
-      this.#popTab();
+      this.popTab();
     }
 
     // Move to most recent
     const first = this.entries.firstChild;
     this.entries.insertBefore(action.element, first);
 
-    action.callback(action.value);
+    if (action.callback) action.callback(action.value);
     return action.closes;
   }
 
   /**
    * @returns {HTMLElement[]}
    */
-  #getVisibleCommands() {
+  private getVisibleCommands(): HTMLElement[] {
     return [...this.entries.querySelectorAll('.cmd-entry:not([hidden])')].filter((el) =>
       this.currentActions.some((a) => a.element === el),
-    );
+    ) as HTMLElement[];
   }
 
   /**
@@ -279,8 +292,8 @@ export class CommandPalette {
    * @param {boolean} options.previous
    * @param {HTMLElement} options.selected
    */
-  #cycle({ previous = false, selected }) {
-    const children = this.#getVisibleCommands();
+  private cycle({ previous = false, selected }: { previous: boolean; selected: HTMLElement }) {
+    const children = this.getVisibleCommands();
     if (children.length === 0) return;
     const index = children.indexOf(selected);
 
@@ -292,20 +305,20 @@ export class CommandPalette {
 
     const child = children[target];
     child.appendChild(this.charReturn);
-    this.#updateDisplay();
+    this.updateDisplay();
   }
 
-  #validateSelector() {
+  private validateSelector() {
     const parent = this.charReturn.parentElement;
-    const children = this.#getVisibleCommands();
-    if (children.indexOf(parent) === -1)
+    const children = this.getVisibleCommands();
+    if (parent === null || children.indexOf(parent) === -1)
       if (children.length > 0) children[0].appendChild(this.charReturn);
   }
 
-  #updateDisplay() {
+  private updateDisplay() {
     const parent = this.charReturn.parentElement;
-    const children = this.#getVisibleCommands();
-    const index = Math.max(children.indexOf(parent), 0);
+    const children = this.getVisibleCommands();
+    const index = Math.max(parent ? children.indexOf(parent) : -1, 0);
 
     const half = Math.floor(this.display_amount / 2);
 
@@ -318,12 +331,9 @@ export class CommandPalette {
     });
   }
 
-  /**
-   * @param {MouseEvent} event
-   */
-  overlayMouseMoveListener(event) {
+  overlayMouseMoveListener(event: MouseEvent) {
     const { clientX, clientY } = event;
-    const children = this.#getVisibleCommands();
+    const children = this.getVisibleCommands();
 
     const child = children.find((child) => {
       const { left, right, top, bottom } = child.getBoundingClientRect();
@@ -333,18 +343,12 @@ export class CommandPalette {
     if (child != null) child.appendChild(this.charReturn);
   }
 
-  /**
-   * @param {MouseEvent} event
-   */
-  overlayClickListener(_event) {
+  overlayClickListener(event: MouseEvent) {
     const selected = this.charReturn.parentElement;
-    this.forceNoClose = !this.#select(selected);
+    this.forceNoClose = !this.select(selected);
   }
 
-  /**
-   * @param {InputEvent} event
-   */
-  documentInputChangeListener(_event) {
+  documentInputChangeListener(event: InputEvent) {
     const fuse = new Fuse(this.currentActions, {
       // Ignore accents
       ignoreDiacritics: true,
@@ -355,7 +359,7 @@ export class CommandPalette {
     });
 
     /** @type {string} */
-    const query = this.input.value.trim();
+    const query: string = this.input.value.trim();
 
     const matches = new Set(
       !query ? this.currentActions : fuse.search(query).map((result) => result.item),
@@ -371,34 +375,32 @@ export class CommandPalette {
       action.element.toggleAttribute('hidden', !shown);
     });
 
-    this.#validateSelector();
-    this.#updateDisplay();
-    this.#autocomplete();
+    this.validateSelector();
+    this.updateDisplay();
+    this.autocomplete();
   }
 
-  /**
-   * @param {KeyboardEvent} event
-   */
-  documentKeydownListener(event) {
+  documentKeydownListener(event: KeyboardEvent) {
     const cancelEvent = () => event.preventDefault();
     const { key } = event;
 
     const closes = ['Enter', 'Escape'].includes(key);
     const cycles = ['Tab', 'ArrowUp', 'ArrowDown'].includes(key);
     const selected = this.charReturn.parentElement;
+    if (!selected) return;
 
     if (key === 'Backspace') {
-      if (this.autocomplete) {
-        this.autocomplete = false;
+      if (this.shouldAutocomplete) {
+        this.shouldAutocomplete = false;
       } else if (!this.input.value) {
         cancelEvent();
-        this.#popTab();
+        this.popTab();
         return;
       }
     }
 
-    if (key === 'Tab' && this.autocomplete) {
-      this.autocomplete = false;
+    if (key === 'Tab' && this.shouldAutocomplete) {
+      this.shouldAutocomplete = false;
       const last = this.input.value.length;
       this.input.setSelectionRange(last, last);
       cancelEvent();
@@ -407,29 +409,26 @@ export class CommandPalette {
 
     if (closes) {
       if (key === 'Enter') {
-        const shouldClose = this.#select(selected);
+        const shouldClose = this.select(selected);
         if (!shouldClose) return;
       }
 
       this.input.blur();
-      this.input.value = null;
+      this.input.value = '';
       return;
     }
 
     if (cycles) {
       cancelEvent();
       const previous = key === 'ArrowUp' || (key === 'Tab' && event.shiftKey);
-      this.#cycle({ previous, selected });
+      this.cycle({ previous, selected });
       return;
     }
 
     this.lastKeyChar = key.length === 1;
   }
 
-  /**
-   * @param {FocusEvent} event
-   */
-  async documentFocusChangeListener(event) {
+  async documentFocusChangeListener(event: FocusEvent) {
     if (event.type === 'focus') return this.open();
     await new Promise((accept) => setTimeout(accept, 10));
 
@@ -442,19 +441,19 @@ export class CommandPalette {
   open() {
     this.isOpen = true;
     this.overlay.style.display = '';
-    this.entries.firstChild.appendChild(this.charReturn);
+    this.entries.firstChild?.appendChild(this.charReturn);
 
-    this.#executeSearch();
+    this.executeSearch();
   }
 
   async close() {
     this.isOpen = false;
     this.overlay.style.display = 'none';
 
-    while (this.stack.length > 0) this.#popTab();
+    while (this.stack.length > 0) this.popTab();
   }
 
-  #executeSearch() {
+  private executeSearch() {
     this.input.dispatchEvent(new InputEvent('input'));
   }
 
