@@ -1,6 +1,5 @@
 import { CommandPalette } from './development/commands.ts';
 import { SocketStatus } from './development/sockets.ts';
-import { ReportBuilder } from './report/ReportBuilder.ts';
 
 // Make the command palette
 const commandPalette = new CommandPalette({
@@ -206,7 +205,7 @@ async function addGeneralActions() {
 
     commandPalette.addAction({
       callback: (value) => {
-        window.location.pathname = value;
+        globalThis.location.pathname = value;
       },
       icon: 'arrow-left-right',
       label: 'Switch Project',

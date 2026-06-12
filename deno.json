@@ -1,0 +1,8 @@
+{
+  "exclude": ["./src/server/constants.ts"],
+  "lint": {
+    "rules": {
+      "exclude": ["no-attribute-type"]
+    }
+  }
+}

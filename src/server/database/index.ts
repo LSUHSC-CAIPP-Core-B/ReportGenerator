@@ -5,7 +5,7 @@ import {
   DATABASE_PASS,
   DATABASE_URL,
   DATABASE_USER,
-} from '../constants';
+} from '../constants.ts';
 
 let connection: Mongoose;
 

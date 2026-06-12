@@ -1,5 +1,5 @@
 import { model, Schema } from 'mongoose';
-import type { FileEntry, HashedEntry } from './types';
+import type { FileEntry, HashedEntry } from './types.ts';
 
 const required = true,
   unique = true;

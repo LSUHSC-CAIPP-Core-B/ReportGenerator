@@ -1,14 +1,19 @@
-import { baseKeymap } from 'https://esm.sh/prosemirror-commands';
-import { keymap } from 'https://esm.sh/prosemirror-keymap';
-import { DOMParser, DOMSerializer, Schema } from 'https://esm.sh/prosemirror-model';
-import { schema as basicSchema } from 'https://esm.sh/prosemirror-schema-basic';
-import { EditorState } from 'https://esm.sh/prosemirror-state';
-import { EditorView } from 'https://esm.sh/prosemirror-view';
+import { baseKeymap } from 'https://esm.sh/prosemirror-commands@1.7.1';
+import { keymap } from 'https://esm.sh/prosemirror-keymap@1.2.3';
+import {
+  DOMParser,
+  DOMSerializer,
+  type NodeSpec,
+  Schema,
+} from 'https://esm.sh/prosemirror-model@1.25.4';
+import { schema as basicSchema } from 'https://esm.sh/prosemirror-schema-basic@1.2.4';
+import { EditorState, type Plugin } from 'https://esm.sh/prosemirror-state@1.4.4';
+import { EditorView } from 'https://esm.sh/prosemirror-view@1.41.9';
 
 /**
  * Extend schema (underline support)
  */
-const paragraph = {
+const paragraph: NodeSpec = {
   ...basicSchema.spec.nodes.get('paragraph'),
 
   attrs: {
@@ -27,7 +32,7 @@ const paragraph = {
   toDOM: (node) => ['p', { style: `text-align:${node.attrs.textAlign};` }, 0],
 };
 
-const heading = {
+const heading: NodeSpec = {
   ...basicSchema.spec.nodes.get('heading'),
 
   attrs: {
@@ -61,7 +66,7 @@ export function createProseMirrorEditor({ mount, content = '', onChange, onBlur 
 
   const state = EditorState.create({
     doc: DOMParser.fromSchema(schema).parse(wrapper),
-    plugins: [keymap(baseKeymap)],
+    plugins: [keymap(baseKeymap) as any as Plugin<any>],
   });
 
   const view = new EditorView(mount, {
@@ -78,7 +83,7 @@ export function createProseMirrorEditor({ mount, content = '', onChange, onBlur 
       }
     },
     handleDOMEvents: {
-      blur: (view, event) => onBlur(event.target.innerHTML),
+      blur: (view, { target }) => onBlur((target as HTMLElement).innerHTML),
     },
     state,
   });

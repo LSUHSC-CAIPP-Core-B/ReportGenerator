@@ -86,24 +86,24 @@ export class LayoutManager {
     const navbar = document.querySelector('.b-navbar');
     if (!navbar) return;
 
-    navbar.classList.toggle('scrolled', window.scrollY > 0);
+    navbar.classList.toggle('scrolled', globalThis.scrollY > 0);
   };
 
   private handleLoad() {
     const stickyElements = document.querySelectorAll('.js-sticky');
-    const verticalScroll = window.scrollY;
+    const verticalScroll = globalThis.scrollY;
 
     for (const element of stickyElements) {
       if (!(element instanceof HTMLElement)) continue;
 
-      const style = window.getComputedStyle(element);
+      const style = globalThis.getComputedStyle(element);
 
       if (style.position !== 'sticky') element.style.position = 'sticky';
 
       const parent = element.parentElement;
       if (!parent) continue;
 
-      const parentStyle = window.getComputedStyle(parent);
+      const parentStyle = globalThis.getComputedStyle(parent);
       const parentBorder = parent.getBoundingClientRect();
       const topPadding = parseInt(parentStyle.paddingTop, 10) || 0;
       const parentStartY = parentBorder.y + verticalScroll + topPadding;

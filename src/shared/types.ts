@@ -14,7 +14,7 @@ export type CommandAction = {
 
 export type CommandActionOptions = Pick<CommandAction, 'label' | 'description' | 'callback'> &
   Pick<Partial<CommandAction>, 'closes' | 'value' | 'visibility'> & {
-    icon: string;
+    icon?: string;
     tab?: CommandActionOptions[];
     truncate?: 'start' | 'end';
   };

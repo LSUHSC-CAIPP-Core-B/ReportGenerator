@@ -1,7 +1,10 @@
 import { resolve as resolvePath } from 'node:path';
 import { cwd } from 'node:process';
 import { URL } from 'node:url';
-import { name as APP_NAME } from '../../package.json';
+
+import $package from '../../package.json';
+
+const { name: APP_NAME } = $package;
 
 // Import process env variables
 const {

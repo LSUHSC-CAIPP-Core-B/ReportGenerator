@@ -1,8 +1,8 @@
 import { Types } from 'mongoose';
 import { Server } from 'socket.io';
-import { server } from './app';
-import { ProjectModel } from './database/schemas';
-import projects from './projects';
+import { server } from './app.ts';
+import { ProjectModel } from './database/schemas.ts';
+import projects from './projects/index.ts';
 
 const io = new Server(server);
 

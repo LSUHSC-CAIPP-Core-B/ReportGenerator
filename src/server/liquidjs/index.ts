@@ -1,6 +1,6 @@
 import { Liquid } from 'liquidjs';
-import { ASSETS_DIRECTORY } from '../constants';
-import { registerPlugins } from './plugins';
+import { ASSETS_DIRECTORY } from '../constants.ts';
+import { registerPlugins } from './plugins/index.ts';
 
 const liquid = new Liquid({
   extname: '.html',
