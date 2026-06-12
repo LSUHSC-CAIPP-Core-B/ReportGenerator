@@ -1,12 +1,12 @@
 import { Config, DataError, JsonDB } from 'node-json-db';
-import { catchErrorTyped } from '../utilities';
+import { catchErrorTyped } from '../utilities.ts';
 import {
   type ProjectAction,
   ProjectError,
   type ProjectGroup,
   type ProjectInfo,
   type ProjectReport,
-} from './types';
+} from './types.ts';
 
 const config = new Config('projects.db', true, true, '/');
 

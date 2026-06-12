@@ -17,5 +17,6 @@
   },
   "editor.formatOnSave": true,
   "files.autoSave": "onFocusChange",
-  "deno.enable": true
+  "deno.enable": true,
+  //  "deno.enablePaths": ["src/client/", "src/shared/"],
 }

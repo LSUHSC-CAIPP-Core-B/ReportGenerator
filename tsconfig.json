@@ -3,7 +3,9 @@
     "declaration": true,
     "module": "node20",
     "outDir": "./build",
-    "target": "es2025"
+    "target": "es2025",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   },
   "exclude": ["node_modules"],
   "include": ["./src/**/*"]

@@ -1,13 +1,15 @@
-import { setBlockType, toggleMark } from 'https://esm.sh/prosemirror-commands';
+import { setBlockType, toggleMark } from 'https://esm.sh/prosemirror-commands@1.7.1';
+import type { EditorState, Transaction } from 'https://esm.sh/prosemirror-state@1.4.3';
+import type { EditorView } from 'https://esm.sh/prosemirror-view@1.41.9';
 
 export class EditorToolbar {
   toolbar: HTMLElement;
-  view: null;
+  view: EditorView;
 
-  _documentMouseDownHandler: any;
+  documentMouseDownHandler: (event: MouseEvent) => void;
 
   constructor() {
-    this.#initalizeElements();
+    this.initalizeElements();
 
     this.view = null;
 
@@ -18,7 +20,8 @@ export class EditorToolbar {
       const btn = target.closest('button');
       if (!btn || !this.view) return;
 
-      const { state, dispatch } = this.view;
+      const state: EditorState = this.view.state as any;
+      const dispatch: (tr: Transaction) => void = this.view.dispatch as any;
       const { action, heading, align } = btn.dataset;
       const node = state.selection.$from.parent;
 
@@ -58,7 +61,7 @@ export class EditorToolbar {
     // });
   }
 
-  #initalizeElements() {
+  private initalizeElements() {
     this.toolbar = document.createElement('div');
     this.toolbar.className = 'pm-toolbar hidden';
     document.body.appendChild(this.toolbar);
@@ -69,7 +72,7 @@ export class EditorToolbar {
         const button = document.createElement('button');
         button.dataset[key] = v;
 
-        const icon = this.#createIconElement(`${iconPrefix}${v}`);
+        const icon = this.createIconElement(`${iconPrefix}${v}`);
         button.appendChild(icon);
 
         return button;
@@ -101,53 +104,41 @@ export class EditorToolbar {
     this.toolbar.append(headingElements, alignElements, actionElements);
   }
 
-  /** @param {string} [icon='dot']  */
-  #createIconElement(icon = 'dot') {
+  private createIconElement(icon: string = 'dot') {
     const element = document.createElement('i');
     element.classList.add('icons', `icon-${icon}`);
     return element;
   }
 
-  bind(view: {
-    dom: {
-      addEventListener: (
-        arg0: string,
-        arg1: {
-          (arg0: string, _mouseUpHandler: any): void;
-          (arg0: string, _keyUpHandler: any): void;
-        },
-      ) => void;
-    };
-  }) {
+  bind(view: EditorView) {
     // Remove old listeners
     if (this.view) {
-      this.view.dom.removeEventListener('mouseup', this._mouseUpHandler);
-      this.view.dom.removeEventListener('keyup', this._keyUpHandler);
+      this.view.dom.removeEventListener('mouseup', this.mouseUpHandler);
+      this.view.dom.removeEventListener('keyup', this.keyUpHandler);
     }
 
     this.view = view;
 
     // Store handlers so they can be removed later
-    this._mouseUpHandler = () => setTimeout(() => this.show(), 20);
-    this._keyUpHandler = () => setTimeout(() => this.show(), 20);
+    this.mouseUpHandler = () => setTimeout(() => this.show(), 20);
+    this.keyUpHandler = () => setTimeout(() => this.show(), 20);
 
-    view.dom.addEventListener('mouseup', this._mouseUpHandler);
-    view.dom.addEventListener('keyup', this._keyUpHandler);
+    view.dom.addEventListener('mouseup', this.mouseUpHandler);
+    view.dom.addEventListener('keyup', this.keyUpHandler);
 
-    if (!this._documentMouseDownHandler) {
-      this._documentMouseDownHandler = (e: { target: Node }) => {
-        if (!this.toolbar.contains(e.target)) {
-          this.hide();
-        }
+    if (!this.documentMouseDownHandler) {
+      this.documentMouseDownHandler = ({ target }) => {
+        if (!(target instanceof HTMLElement)) return;
+        if (!this.toolbar.contains(target)) this.hide();
       };
 
-      document.addEventListener('mousedown', this._documentMouseDownHandler);
+      document.addEventListener('mousedown', this.documentMouseDownHandler);
     }
   }
-  _mouseUpHandler(arg0: string, _mouseUpHandler: any) {
+  mouseUpHandler(event: MouseEvent) {
     throw new Error('Method not implemented.');
   }
-  _keyUpHandler(arg0: string, _keyUpHandler: any) {
+  keyUpHandler(event: KeyboardEvent) {
     throw new Error('Method not implemented.');
   }
 
@@ -210,7 +201,8 @@ export class EditorToolbar {
   }
 
   setParagraphStyle(attrs: { readonly [x: string]: any; textAlign?: any }) {
-    const { state, dispatch } = this.view;
+    const state: EditorState = this.view.state as any;
+    const dispatch: (tr: Transaction) => void = this.view.dispatch as any;
 
     const node = state.selection.$from.parent;
     const { type, attrs: current } = node;

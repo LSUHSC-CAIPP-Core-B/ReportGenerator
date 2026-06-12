@@ -1,10 +1,10 @@
 import { createServer } from 'node:http';
-import { WEBSERVER_PORT } from './constants';
-import { connectDB } from './database';
-import app from './express';
+import { WEBSERVER_PORT } from './constants.ts';
+import { connectDB } from './database/index.ts';
+import app from './express.ts';
 
 export const server = createServer(app);
-import './sockets';
+import './sockets.ts';
 
 server.listen(WEBSERVER_PORT, async () => {
   try {

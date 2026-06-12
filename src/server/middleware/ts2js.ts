@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import ts from 'typescript';
-import { APP_NAME } from '../constants';
+import { APP_NAME } from '../constants.ts';
 
 const SRC_DIR = path.resolve(process.cwd(), 'src');
 const TMP_DIR = path.join(tmpdir(), APP_NAME, 'client-cache');

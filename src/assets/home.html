@@ -21,6 +21,15 @@
   <title>{{ title | titlecase }}</title>
 
   <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css" />
+
+
+  <script type="importmap">
+    {
+      "imports": {
+        "socket.io-client": "https://cdn.socket.io/4.8.3/socket.io.esm.min.js"
+      }
+    }
+  </script>
   
   {% if environment == 'dev' -%}
   {% element "script" -%}

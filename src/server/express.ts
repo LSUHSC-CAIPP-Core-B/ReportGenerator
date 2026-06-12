@@ -3,13 +3,13 @@ import { join as joinPath, resolve as resolvePath } from 'node:path';
 import express, { type Request, type Response, static as staticFiles } from 'express';
 import { Types } from 'mongoose';
 import { UAParser } from 'ua-parser-js';
-import { ASSETS_DIRECTORY } from './constants';
-import { ProjectModel } from './database/schemas';
-import liquid from './liquidjs';
-import ts2jsRouter from './middleware/ts2js';
-import projects, { reduceReport } from './projects';
-import { ProjectError } from './projects/types';
-import { catchErrorTyped, getParam } from './utilities';
+import { ASSETS_DIRECTORY } from './constants.ts';
+import { ProjectModel } from './database/schemas.ts';
+import liquid from './liquidjs/index.ts';
+import ts2jsRouter from './middleware/ts2js.ts';
+import projects, { reduceReport } from './projects/index.ts';
+import { ProjectError } from './projects/types.ts';
+import { catchErrorTyped, getParam } from './utilities.ts';
 
 const app = express();
 

@@ -201,7 +201,8 @@ export class PendingInsertManager {
 
     const view_padding = 120;
     const rect = this.insertMarker.getBoundingClientRect();
-    const visible = rect.top >= view_padding && rect.bottom <= window.innerHeight - view_padding;
+    const visible =
+      rect.top >= view_padding && rect.bottom <= globalThis.innerHeight - view_padding;
 
     if (!visible && scroll)
       this.insertMarker.scrollIntoView({ behavior: 'smooth', block: 'center' });

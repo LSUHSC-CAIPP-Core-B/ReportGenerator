@@ -1,4 +1,4 @@
-import Fuse from 'fuse.js';
+import Fuse from 'https://cdn.jsdelivr.net/npm/fuse.js@7.4.1/dist/fuse.mjs';
 import type {
   CommandAction,
   CommandActionOptions,
