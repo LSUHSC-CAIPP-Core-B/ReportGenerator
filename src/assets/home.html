@@ -24,11 +24,18 @@
 
 
   <script type="importmap">
-    {
-      "imports": {
-        "socket.io-client": "https://cdn.socket.io/4.8.3/socket.io.esm.min.js"
-      }
-    }
+   {
+  "imports": {
+    "prosemirror-commands": "https://esm.sh/prosemirror-commands@1.7.1?target=es2022&deps=prosemirror-model@1.25.8,prosemirror-state@1.4.4,prosemirror-transform@1.12.0,prosemirror-view@1.41.9",
+    "prosemirror-keymap": "https://esm.sh/prosemirror-keymap@1.2.3?target=es2022&deps=prosemirror-model@1.25.8,prosemirror-state@1.4.4,prosemirror-transform@1.12.0,prosemirror-view@1.41.9",
+    "prosemirror-model": "https://esm.sh/prosemirror-model@1.25.8?target=es2022",
+    "prosemirror-schema-basic": "https://esm.sh/prosemirror-schema-basic@1.2.4?target=es2022&deps=prosemirror-model@1.25.8",
+    "prosemirror-state": "https://esm.sh/prosemirror-state@1.4.4?target=es2022&deps=prosemirror-model@1.25.8",
+    "prosemirror-transform": "https://esm.sh/prosemirror-transform@1.12.0?target=es2022&deps=prosemirror-model@1.25.8",
+    "prosemirror-view": "https://esm.sh/prosemirror-view@1.41.9?target=es2022&deps=prosemirror-model@1.25.8,prosemirror-state@1.4.4,prosemirror-transform@1.12.0",
+    "socket.io-client": "https://cdn.socket.io/4.8.3/socket.io.esm.min.js"
+  }
+}
   </script>
   
   {% if environment == 'dev' -%}
@@ -76,10 +83,10 @@
             <a href="{{ report_url }}" class="project-reference">{{ report.title }}</a>
             <p class="project-timestamp">{{ report.last_opened | date: "%B %d, %Y at %l:%M %P" }}</p>
             <div class="project-actions">
-              <a href="{{ report_url }}" class="project-action" aria-actiontype="edit">
+              <a href="{{ report_url }}" class="project-action" >
                 <i class="icon-pencil"></i>
               </a>
-              <a href="{{ report_url | append: '/delete' }}" class="project-action" aria-actiontype="edit">
+              <a href="{{ report_url | append: '/delete' }}" class="project-action" >
                 <i class="icon-trash"></i>
               </a>
             </div>

@@ -1,4 +1,4 @@
-import type { ElementOptions } from '../../../shared/types.ts';
+import type { ProjectActionType } from '../../../shared/index.ts';
 import { ElementFactory } from '../factories/ElementFactory.ts';
 import type { ReportElement } from '../models/ReportElement.ts';
 import type { ReportGroup } from '../models/ReportGroup.ts';
@@ -19,11 +19,11 @@ export class ElementManager {
     this.renderer = new ElementRenderer(this);
   }
 
-  addElementToGroup(groupId: string, options: ElementOptions) {
-    return this.insertElementIntoGroup(groupId, options, null);
-  }
-
-  insertElementIntoGroup(groupId: string, options: ElementOptions, index: number | null = null) {
+  insertElementIntoGroup({
+    groupId,
+    options,
+    index,
+  }: ProjectActionType<'element:create', 'type' | 'index'>) {
     const groupManager = this.report.getGroupManager();
     const dragDropManager = this.report.getDragDropManager();
 
@@ -53,13 +53,12 @@ export class ElementManager {
     return element;
   }
 
-  /**
-   * @param {string} elementId
-   * @param {string} fromGroupId
-   * @param {string} toGroupId
-   * @param {number} index
-   */
-  moveElementToGroup(elementId: string, fromGroupId: string, toGroupId: string, index: number = 0) {
+  moveElementToGroup({
+    elementId,
+    fromGroupId,
+    toGroupId,
+    index = 0,
+  }: ProjectActionType<'element:move', 'type' | 'index'>) {
     const groupManager = this.report.getGroupManager();
 
     const sourceGroup = groupManager.getGroup(fromGroupId);

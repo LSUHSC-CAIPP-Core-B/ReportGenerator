@@ -1,4 +1,4 @@
-import type { ProjectAction } from '../../shared/index.ts';
+import type { ProjectAction, ProjectActionType } from '../../shared/index.ts';
 import { DragDropManager } from './managers/DragDropManager.ts';
 import { ElementManager } from './managers/ElementManager.ts';
 import { GroupManager } from './managers/GroupManager.ts';
@@ -66,19 +66,12 @@ export class ReportBuilder extends EventTarget {
     document.body.classList.toggle('local', !force);
   }
 
-  /**
-   * @param {Object} options
-   * @param {string} options.title
-   * @param {any[]} options.elements
-   * @param {string} [options.identifier]
-   * @param {string} [options.parentId]
-   */
-  withGroup(options: { title: string; elements: any[]; identifier?: string; parentId?: string }) {
+  withGroup(options: ProjectActionType<'group:create', 'type' | 'groupId' | 'parentId'>) {
     return this.groups.create(options);
   }
 
-  addElementToGroup(groupId: string, options) {
-    return this.elements.addElementToGroup(groupId, options);
+  insertElementIntoGroup(options: ProjectActionType<'element:create', 'type' | 'index'>) {
+    return this.elements.insertElementIntoGroup(options);
   }
 
   destroy() {

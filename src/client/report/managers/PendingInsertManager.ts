@@ -1,10 +1,10 @@
-import type { ElementOptions } from '../../../shared/types.ts';
+import type { ProjectElement } from '../../../shared/index.ts';
 import type { ReportBuilder } from '../ReportBuilder.ts';
 import { iterateGroups } from '../utils/groupTree.ts';
 
 export class PendingInsertManager {
   private pendingId: string | null = null;
-  private pendingElement: ElementOptions | null = null;
+  private pendingElement: ProjectElement | null = null;
   private insertionDelay: number = 0;
   private pendingInsertIndex: number = 0;
   private insertMarker: HTMLElement;
@@ -63,11 +63,11 @@ export class PendingInsertManager {
 
         if (!this.pendingId) break;
 
-        elementManager.insertElementIntoGroup(
-          this.pendingId,
-          this.pendingElement,
-          this.pendingInsertIndex,
-        );
+        elementManager.insertElementIntoGroup({
+          groupId: this.pendingId,
+          index: this.pendingInsertIndex,
+          options: this.pendingElement,
+        });
 
         this.cancelPendingElement();
         break;
@@ -115,11 +115,11 @@ export class PendingInsertManager {
       if (!this.pendingId) return;
       if (!this.pendingElement) return;
 
-      elementManager.insertElementIntoGroup(
-        this.pendingId,
-        this.pendingElement,
-        this.pendingInsertIndex,
-      );
+      elementManager.insertElementIntoGroup({
+        groupId: this.pendingId,
+        index: this.pendingInsertIndex,
+        options: this.pendingElement,
+      });
 
       this.cancelPendingElement();
     });

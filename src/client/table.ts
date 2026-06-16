@@ -7,7 +7,7 @@ function loadCSVTable(data: string) {
     .filter((line) => !line.match(/^$/g))
     .map((line) =>
       line
-        .split(/(?<=(?:^|,)(?:"(?:""|[^"])*"|[^"]+)),(?![^"]+",)/g)
+        .split(/(?<=(?:^|\s*,\s*)(?:"(?:""|[^"])*"|[^"]+))\s*,\s*(?![^"]+"\s*,\s*)/g)
         .map((d) =>
           d.match(/^\d+(?:\.\d+)?$/)
             ? parseFloat(d)

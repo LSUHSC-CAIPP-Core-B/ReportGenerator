@@ -115,8 +115,8 @@
         white-space: nowrap;
 
         &[truncate="start"] {
-          direction: rtl;
           text-align: justify;
+          direction: rtl;
         }
       }
     }

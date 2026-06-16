@@ -308,14 +308,10 @@ class ProjectHandler {
           .flatMap((g) => g.elements)
           .find((e) => e.identifier === action.elementId);
 
-        console.log(element);
-
         if (!element) break;
 
         element.data ??= {};
         Object.assign(element.data, action.data);
-
-        console.log(element);
 
         break;
       }

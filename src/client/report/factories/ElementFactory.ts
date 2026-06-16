@@ -1,11 +1,11 @@
 import type {
-  DescriptionElementOptions,
-  ElementOptions,
-  FrameElementOptions,
-  ImageElementOptions,
-  ShellElementOptions,
-  TableElementOptions,
-} from '../../../shared/types.ts';
+  DescriptionElement,
+  Element,
+  ElementShell,
+  FrameElement,
+  ImageElement,
+  TableElement,
+} from '../../../shared/models.ts';
 import { EditorToolbar } from '../../editor/editorToolbar.ts';
 import { createProseMirrorEditor } from '../../editor/prosemirrorEditor.ts';
 import { handle } from '../../iframe.ts';
@@ -26,7 +26,7 @@ export class ElementFactory {
     identifier,
     icon = 'group',
     details = 'Element Group',
-  }: ShellElementOptions) {
+  }: ElementShell) {
     const element = document.createElement('div');
     element.classList.add('b-element');
     element.setAttribute('aria-identifier', identifier);
@@ -56,8 +56,7 @@ export class ElementFactory {
     return element;
   }
 
-  createElementFromType(options: ElementOptions) {
-    console.log(options);
+  createElementFromType(options: Element) {
     const { type } = options;
 
     if (type === 'description') return this.createDescription(options);
@@ -73,7 +72,7 @@ export class ElementFactory {
     });
   }
 
-  createDescription(options: DescriptionElementOptions = { type: 'description' }) {
+  createDescription(options: DescriptionElement = { type: 'description' }) {
     const { data, identifier = createIdentifier() } = options;
     const { description = 'Sample description' } = data ?? {};
     const shell = this.createElementShell({ details: 'Description', icon: 'text', identifier });
@@ -109,7 +108,7 @@ export class ElementFactory {
   /**
    * @param {Object} options
    */
-  createImageElement(options: ImageElementOptions = { type: 'image' }) {
+  createImageElement(options: ImageElement = { type: 'image' }) {
     const { identifier = createIdentifier(), data } = options;
     const { file, description } = data ?? {};
 
@@ -142,7 +141,7 @@ export class ElementFactory {
   /**
    * @param {Object} options
    */
-  createFrameElement(options: FrameElementOptions = { type: 'frame' }) {
+  createFrameElement(options: FrameElement = { type: 'frame' }) {
     const { identifier = createIdentifier(), data } = options;
     const { file } = data ?? {};
 
@@ -168,7 +167,7 @@ export class ElementFactory {
   /**
    * @param {Object} options
    */
-  createTableElement(options: TableElementOptions = { type: 'table' }) {
+  createTableElement(options: TableElement = { type: 'table' }) {
     const { identifier = createIdentifier(), data } = options;
     const { type = 'csv', file, extras } = data ?? {};
     if (!file) return null;

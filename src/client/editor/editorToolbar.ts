@@ -1,6 +1,6 @@
-import { setBlockType, toggleMark } from 'https://esm.sh/prosemirror-commands@1.7.1';
-import type { EditorState, Transaction } from 'https://esm.sh/prosemirror-state@1.4.3';
-import type { EditorView } from 'https://esm.sh/prosemirror-view@1.41.9';
+import { setBlockType, toggleMark } from 'prosemirror-commands';
+import type { EditorState, Transaction } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
 
 export class EditorToolbar {
   toolbar: HTMLElement;
@@ -201,8 +201,8 @@ export class EditorToolbar {
   }
 
   setParagraphStyle(attrs: { readonly [x: string]: any; textAlign?: any }) {
-    const state: EditorState = this.view.state as any;
-    const dispatch: (tr: Transaction) => void = this.view.dispatch as any;
+    const state: EditorState = this.view.state;
+    const dispatch: (tr: Transaction) => void = this.view.dispatch;
 
     const node = state.selection.$from.parent;
     const { type, attrs: current } = node;

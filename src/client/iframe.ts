@@ -17,6 +17,6 @@ function resizeFrame(frame) {
   const frameBody = innerContent?.body;
 
   if (frameBody == null) return;
-  var targetHeight = `${frameBody.clientHeight + 30}px`;
+  const targetHeight = `${frameBody.clientHeight + 30}px`;
   if (frame.height !== targetHeight) frame.height = targetHeight;
 }

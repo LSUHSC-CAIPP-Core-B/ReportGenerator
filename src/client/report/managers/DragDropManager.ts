@@ -8,21 +8,21 @@ export class DragDropManager {
     this.report = report;
   }
 
-  attachGroupEvents(groupId: string) {
+  attachGroupEvents(toGroupId: string) {
     const groupManager = this.report.getGroupManager();
     const insertManager = this.report.getPendingInsertManager();
     const elementManager = this.report.getElementManager();
     const layoutManager = this.report.getLayoutManager();
 
     const groupRenderer = groupManager.getRenderer();
-    const $group = groupManager.getGroup(groupId);
-    if (!$group) throw Error(`Couldn't find group: ${groupId}`);
+    const $group = groupManager.getGroup(toGroupId);
+    if (!$group) throw Error(`Couldn't find group: ${toGroupId}`);
 
     const { menuEntry: menu, content: group } = $group;
 
     menu.addEventListener('dragstart', (event) => {
       const dataTransfer = event.dataTransfer;
-      dataTransfer?.setData('text/group-id', groupId);
+      dataTransfer?.setData('text/group-id', toGroupId);
       this.report.toggleFrames(false);
     });
 
@@ -42,12 +42,12 @@ export class DragDropManager {
 
     menu.addEventListener('dragover', (event) => {
       event.preventDefault();
-      groupRenderer.toggleDragEffect(groupId, true);
+      groupRenderer.toggleDragEffect(toGroupId, true);
     });
 
     group.addEventListener('dragover', (event) => {
       event.preventDefault();
-      groupRenderer.toggleDragEffect(groupId, true);
+      groupRenderer.toggleDragEffect(toGroupId, true);
 
       // const elementId = event.dataTransfer.getData('text/element-id');
       // if (!elementId) return;
@@ -75,34 +75,31 @@ export class DragDropManager {
 
     menu.addEventListener('dragleave', (event) => {
       if (!group.contains(event.relatedTarget as Node)) insertManager.removeInsertMarker();
-      groupRenderer.toggleDragEffect(groupId, false);
+      groupRenderer.toggleDragEffect(toGroupId, false);
     });
 
     group.addEventListener('dragleave', (event) => {
       event.preventDefault();
-      groupRenderer.toggleDragEffect(groupId, false);
+      groupRenderer.toggleDragEffect(toGroupId, false);
     });
 
     menu.addEventListener('drop', (event) => {
       event.preventDefault();
-      groupRenderer.toggleDragEffect(groupId, false);
+      groupRenderer.toggleDragEffect(toGroupId, false);
 
       const elementId = event.dataTransfer?.getData('text/element-id');
-      const sourceGroupId = event.dataTransfer?.getData('text/source-group-id');
+      const fromGroupId = event.dataTransfer?.getData('text/source-group-id');
 
-      if (elementId && sourceGroupId) {
-        const targetGroupId = groupId;
+      if (elementId && fromGroupId) {
         // const insertIndex = this.#insertIndex ?? 0;
-
-        elementManager.moveElementToGroup(elementId, sourceGroupId, targetGroupId);
+        elementManager.moveElementToGroup({ elementId, fromGroupId, toGroupId });
         insertManager.removeInsertMarker();
         return;
       }
 
-      const targetId = groupId;
-      const sourceId = event.dataTransfer?.getData('text/group-id');
-      if (!sourceId || sourceId === targetId) return;
-      if (isDescendant(groupManager, sourceId, targetId)) return;
+      const groupId = event.dataTransfer?.getData('text/group-id');
+      if (!groupId || groupId === toGroupId) return;
+      if (isDescendant(groupManager, groupId, toGroupId)) return;
 
       const rect = menu.getBoundingClientRect();
       const offsetY = event.clientY - rect.top;
@@ -110,19 +107,19 @@ export class DragDropManager {
 
       const position = ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : 'inside';
 
-      groupManager.moveGroup(sourceId, targetId, position);
+      groupManager.moveGroup({ groupId, position, targetId: toGroupId });
     });
 
     group.addEventListener('drop', (event) => {
       event.preventDefault();
-      groupRenderer.toggleDragEffect(groupId, false);
+      groupRenderer.toggleDragEffect(toGroupId, false);
       layoutManager.toggleScrolling(false);
 
       const elementId = event.dataTransfer?.getData('text/element-id');
-      const sourceGroupId = event.dataTransfer?.getData('text/source-group-id');
-      if (!elementId || !sourceGroupId) return;
+      const fromGroupId = event.dataTransfer?.getData('text/source-group-id');
+      if (!elementId || !fromGroupId) return;
 
-      const $group = groupManager.getGroup(groupId);
+      const $group = groupManager.getGroup(toGroupId);
       if (!$group) return;
 
       const { elements: children } = $group;
@@ -130,7 +127,6 @@ export class DragDropManager {
 
       for (let index = 0; index < children.length; index++) {
         const { node: child } = children[index];
-        /** @type { DOMRect } */
         const { top, bottom, height } = child.getBoundingClientRect();
         if (child.getAttribute('aria-identifier') === elementId) continue;
 
@@ -143,12 +139,12 @@ export class DragDropManager {
 
         if (outOfBounds) continue;
         else if (withinTop || withinBottom)
-          elementManager.moveElementToGroup(
+          elementManager.moveElementToGroup({
             elementId,
-            sourceGroupId,
-            groupId,
-            index + withinBottom,
-          );
+            fromGroupId,
+            index: index + withinBottom,
+            toGroupId,
+          });
         break;
       }
 
