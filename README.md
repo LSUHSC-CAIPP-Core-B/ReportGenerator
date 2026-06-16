@@ -3,36 +3,119 @@
 ![Github code size in bytes](https://img.shields.io/github/languages/code-size/lsuhsc-caipp-core-b/reportgenerator?style=flat-square)
 ![GitHub package.json version](https://img.shields.io/github/package-json/v/lsuhsc-caipp-core-b/reportgenerator?style=flat-square)
 
-> A nodejs server, using [PathAtlas](https://github.com/LSUHSC-CAIPP-Core-B/PathAtlas), to generate reports from Mongo Databases and Template files.
+> ReportGenerator is a reporting service that transforms project data stored in
+> PathAtlas into structured reports using customizable templates and
+> MongoDB-backed data sources.
 
+## Overview
+
+ReportGenerator provides a flexible platform for generating reports from indexed
+project data. It integrates with
+[PathAtlas](https://github.com/LSUHSC-CAIPP-Core-B/PathAtlas) to retrieve
+project and file information, then combines that data with configurable
+templates to produce consistent, repeatable outputs.
+
+The service is designed for automated reporting workflows, project analysis, and
+data-driven document generation.
+
+## Features
+
+- Generate reports from MongoDB datasets
+- Integrates directly with
+  [PathAtlas](https://github.com/LSUHSC-CAIPP-Core-B/PathAtlas) project indexes
+- Template-based report generation
+- REST and service-oriented architecture
+- Configurable deployment through environment variables
+- Designed for automation and scheduled workflows
 
 ## Quick Start
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+ recommended)
-- [Yarn](https://yarnpkg.com/)
+Before running the service, ensure the following dependencies are installed:
+
+- PathAtlas (required)
+- Node.js (v18 or newer recommended)
+- Yarn
+
+### Installation
+
+Clone the repository and install dependencies:
+
+```sh
+git clone https://github.com/LSUHSC-CAIPP-Core-B/ReportGenerator.git
+cd ReportGenerator
+yarn install
+```
 
 ### Development
 
+Start the development server:
+
 ```sh
-$ yarn dev
+yarn dev
 ```
 
-### Environment Variables
+### Production Build
 
-| Variable             | Description                                                     | Default Value  |
-|:--------------------:|-----------------------------------------------------------------|:--------------:|
-| `DATABASE_PROTOCOL`  | The Protocol of the MongoDB database                            | `mongodb`      |
-| `DATABASE_URL`       | The IP / Hostname of the MongoDB database                       | ` `            |
-| `DATABASE_USER`      | The database username                                           | ` `            |
-| `DATABASE_PASS`      | The database password                                           | ` `            |
-| `DATABASE_NAME`      | The database name                                               | ` `            |
-| `WEBSERVER_PORT`     | The port to use for this service                                | `15632`        |
-| `TEMPLATE_DIRECTORY` | The folder that contains the project templates to use           | `./templates`  |
+Build the application:
 
+```sh
+yarn build
+```
 
-## :open_file_folder: License
-GPL-3.0 License © 2025
+## Configuration
 
+The application is configured through environment variables.
 
+| Variable            | Description                    | Default   |
+| ------------------- | ------------------------------ | --------- |
+| `DATABASE_PROTOCOL` | MongoDB connection protocol    | `mongodb` |
+| `DATABASE_URL`      | MongoDB hostname or IP address | —         |
+| `DATABASE_USER`     | Database username              | —         |
+| `DATABASE_PASS`     | Database password              | —         |
+| `DATABASE_NAME`     | Database name                  | —         |
+| `WEBSERVER_PORT`    | HTTP server port               | `15632`   |
+
+### Example Configuration
+
+```env
+DATABASE_PROTOCOL=mongodb
+DATABASE_URL=localhost:27017
+DATABASE_NAME=reports
+
+WEBSERVER_PORT=15632
+
+# REQUIRED
+NODE_ENV=dev
+```
+
+## Architecture
+
+```text
+PathAtlas
+    │
+    ▼
+MongoDB
+    │
+    ▼
+ReportGenerator
+    │
+    ▼
+Generated Reports
+```
+
+ReportGenerator retrieves project and file metadata from MongoDB, processes the
+data through report templates, and produces structured outputs suitable for
+analysis, auditing, and documentation workflows.
+
+## Related Projects
+
+- PathAtlas — File indexing & management, and project metadata collection.
+- ReportGenerator — Template-driven reporting built on top of PathAtlas data.
+
+## License
+
+Licensed under the GPL-3.0 License.
+
+© 2025 LSUHS
