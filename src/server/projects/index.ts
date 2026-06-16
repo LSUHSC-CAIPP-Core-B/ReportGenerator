@@ -1,12 +1,13 @@
 import { Config, DataError, JsonDB } from 'node-json-db';
-import { catchErrorTyped } from '../utilities.ts';
 import {
   type ProjectAction,
+  type ProjectDef,
   ProjectError,
   type ProjectGroup,
   type ProjectInfo,
   type ProjectReport,
-} from './types.ts';
+} from '../../shared/index.ts';
+import { catchErrorTyped } from '../utilities.ts';
 
 const config = new Config('projects.db', true, true, '/');
 
@@ -18,7 +19,12 @@ class ProjectHandler {
   }
 
   async getProject(projectId: string) {
-    if (!projectId?.trim()) throw new ProjectError('Project id is required');
+    if (typeof projectId !== 'string') {
+      throw new ProjectError('Project id is not a string');
+    }
+    if (!projectId?.trim()) {
+      throw new ProjectError('Project id is required');
+    }
 
     const path = projectId?.toLowerCase();
 
@@ -33,32 +39,48 @@ class ProjectHandler {
   }
 
   async getAllProjects() {
-    const [, reports] = await catchErrorTyped(
-      this.database.filter<ProjectReport>('/', () => true),
-      [DataError],
-    );
+    const [, data] = await catchErrorTyped(this.database.getData('/'), [DataError]);
 
-    return reports ?? [];
+    const projects: ProjectInfo[] = Object.entries(data)
+      .map(([path, project]) => [path, project as ProjectReport] as const)
+      .filter(([, project]) => typeof project === 'object')
+      .map(
+        ([path, { title, last_opened }], _i, _arr) => ({ last_opened, path, title }) as ProjectInfo,
+      );
+
+    return projects ?? [];
   }
 
-  async createReport(projectId: string) {
-    if (!projectId?.trim()) {
+  async createProject({
+    project,
+    title = project,
+    path = project?.toLowerCase(),
+  }: ProjectDef): Promise<ProjectInfo> {
+    if (typeof project !== 'string') {
+      throw new ProjectError('Project id is not a string');
+    }
+
+    if (!project?.trim()) {
       throw new ProjectError('Project id is required');
     }
 
-    const path = projectId.toLowerCase();
     const exists = await this.database.exists(`/${path}`);
-    if (exists) throw new ProjectError(`Project already exists: ${projectId}`);
+    if (exists) throw new ProjectError(`Project path already exists: ${path}`);
 
     const report = {
       last_opened: new Date().toISOString(),
-      title: projectId,
+      project,
+      title,
     } satisfies ProjectReport;
 
     await this.database.push(`/${path}`, report, true);
+    return { ...report, path };
   }
 
   async replaceReport(projectId: string, report: ProjectReport) {
+    if (typeof projectId !== 'string') {
+      throw new ProjectError('Project id is not a string');
+    }
     if (!projectId?.trim()) {
       throw new ProjectError('Project id is required');
     }
@@ -79,6 +101,9 @@ class ProjectHandler {
   }
 
   async patchReport(projectId: string, report: Partial<ProjectReport>) {
+    if (typeof projectId !== 'string') {
+      throw new ProjectError('Project id is not a string');
+    }
     if (!projectId?.trim()) {
       throw new ProjectError('Project id is required');
     }
@@ -97,6 +122,9 @@ class ProjectHandler {
   }
 
   async deleteProject(projectId: string) {
+    if (typeof projectId !== 'string') {
+      throw new ProjectError('Project id is not a string');
+    }
     if (!projectId?.trim()) {
       throw new ProjectError('Project id is required');
     }
@@ -110,6 +138,9 @@ class ProjectHandler {
   }
 
   async applyAction(projectId: string, action: ProjectAction) {
+    if (typeof projectId !== 'string') {
+      throw new ProjectError('Project id is not a string');
+    }
     if (!projectId?.trim()) {
       throw new ProjectError('Project id is required');
     }
@@ -302,13 +333,6 @@ class ProjectHandler {
     await this.database.push(`/${path}`, report, true);
     return report;
   }
-}
-
-export function reduceReport(report: ProjectReport) {
-  return {
-    last_opened: report.last_opened,
-    title: report.title,
-  } satisfies ProjectInfo;
 }
 
 const handler = new ProjectHandler();

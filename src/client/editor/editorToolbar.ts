@@ -135,10 +135,10 @@ export class EditorToolbar {
       document.addEventListener('mousedown', this.documentMouseDownHandler);
     }
   }
-  mouseUpHandler(event: MouseEvent) {
+  mouseUpHandler(_event: MouseEvent) {
     throw new Error('Method not implemented.');
   }
-  keyUpHandler(event: KeyboardEvent) {
+  keyUpHandler(_event: KeyboardEvent) {
     throw new Error('Method not implemented.');
   }
 

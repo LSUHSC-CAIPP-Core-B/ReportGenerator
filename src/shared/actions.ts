@@ -1,28 +1,4 @@
-export interface ProjectElement {
-  identifier: string;
-  type: string;
-  data: Record<string, any>;
-}
-
-export interface ProjectGroup {
-  identifier: string;
-  parentId: string | null;
-  title: string;
-  depth?: number;
-  elements: ProjectElement[];
-}
-
-export interface ProjectReport {
-  title: string;
-  last_opened: string | Date;
-  groups?: ProjectGroup[];
-}
-
-export type ProjectInfo = Pick<ProjectReport, 'title' | 'last_opened'>;
-
-export class ProjectError extends Error {
-  name: string = 'ProjectError';
-}
+import type { ProjectElement } from './models.ts';
 
 export type ProjectAction =
   | {
@@ -45,11 +21,7 @@ export type ProjectAction =
       type: 'element:create';
       groupId: string;
       index: number;
-      options: {
-        type: string;
-        identifier: string;
-        data: Record<string, any>;
-      };
+      options: ProjectElement;
     }
   | {
       type: 'element:move';
@@ -66,5 +38,5 @@ export type ProjectAction =
   | {
       type: 'element:update';
       elementId: string;
-      data: any;
+      data: Record<string, any>;
     };

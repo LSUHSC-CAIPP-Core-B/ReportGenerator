@@ -37,7 +37,7 @@ export function isDescendant(manager: GroupManager, parentId: string, childId: s
 export function iterateGroups(
   manager: GroupManager,
   startIndex: number,
-  callback: (group: ReportGroup, index: number) => boolean | void,
+  callback: (group: ReportGroup, index: number) => boolean | undefined,
 ) {
   const size = manager.getGroupOrderSize();
   for (let index = startIndex; index < size; index++) {

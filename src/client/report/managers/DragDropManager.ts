@@ -16,7 +16,7 @@ export class DragDropManager {
 
     const groupRenderer = groupManager.getRenderer();
     const $group = groupManager.getGroup(groupId);
-    if (!$group) throw Error("Couldn't find group: " + groupId);
+    if (!$group) throw Error(`Couldn't find group: ${groupId}`);
 
     const { menuEntry: menu, content: group } = $group;
 
@@ -167,7 +167,7 @@ export class DragDropManager {
     const elementManager = this.report.getElementManager();
     const elementRenderer = elementManager.getRenderer();
     const $element = elementManager.getElement(elementId);
-    if (!$element) throw new Error("Couldn't find element: " + elementId);
+    if (!$element) throw new Error(`Couldn't find element: ${elementId}`);
 
     const { node: element } = $element;
 

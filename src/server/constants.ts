@@ -8,12 +8,12 @@ const { name: APP_NAME } = $package;
 
 // Import process env variables
 const {
-  DATABASE_PROTOCOL: dbProtocol,
-  DATABASE_URL,
+  DATABASE_PROTOCOL = 'mongodb',
+  DATABASE_URL = 'localhost',
   DATABASE_USER,
   DATABASE_PASS,
   DATABASE_NAME,
-  WEBSERVER_PORT: serverPort,
+  WEBSERVER_PORT: serverPort = '15632',
 } = process.env;
 
 // Lets generate the url
@@ -27,11 +27,11 @@ searchParams.set('appName', APP_NAME);
 
 let _serverPort = 15632;
 try {
-  _serverPort = parseInt(serverPort || '15632', 10);
+  _serverPort = parseInt(serverPort, 10);
 } catch (_ignored) {}
 
 // Export needed entries
-export const COMPLETE_DATABASE_URL = urlObject.toString().replace(/^[^:]+/g, dbProtocol || 'mongo');
+export const COMPLETE_DATABASE_URL = urlObject.toString().replace(/^[^:]+/g, DATABASE_PROTOCOL);
 
 export const ASSETS_DIRECTORY = resolvePath(cwd(), 'src', 'assets');
 export const WEBSERVER_PORT = _serverPort;
