@@ -83,7 +83,7 @@ export function createProseMirrorEditor({ mount, content = '', onChange, onBlur 
       }
     },
     handleDOMEvents: {
-      blur: (view, { target }) => onBlur((target as HTMLElement).innerHTML),
+      blur: (_view, { target }) => onBlur((target as HTMLElement).innerHTML),
     },
     state,
   });

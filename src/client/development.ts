@@ -1,5 +1,7 @@
+import { io } from 'socket.io-client';
 import { CommandPalette } from './development/commands.ts';
-import { SocketStatus } from './development/sockets.ts';
+import { RPCClient } from './development/rpc-client.ts';
+import type { ReportBuilder } from './report/ReportBuilder.ts';
 
 // Make the command palette
 const commandPalette = new CommandPalette({
@@ -9,11 +11,12 @@ const commandPalette = new CommandPalette({
 });
 
 // Handle socket connections
-const status = new SocketStatus();
+const status = new RPCClient(io());
+const rpc = status.rpc;
 
 const element = commandPalette.addAction(
   {
-    callback: () => status.reconnect(),
+    callback: () => status.connection.reconnect(),
     closes: false,
     description: 'Restart Socket',
     icon: 'cloud-off',
@@ -25,12 +28,12 @@ const element = commandPalette.addAction(
 const label = element.querySelector('.label') as HTMLElement;
 const classes = element.querySelector('.icon').classList;
 
-status.setConnectCallback(() => {
+status.connection.onConnect(() => {
   classes.replace('icon-cloud-off', 'icon-cloud-check');
   label.innerText = 'Socket Connected';
 });
 
-status.setDisconnectCallback(() => {
+status.connection.onDisconnect(() => {
   classes.replace('icon-cloud-check', 'icon-cloud-off');
   label.innerText = 'Socket Disconnected';
 });
@@ -42,15 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
   addEventListeners(/** @type {ReportBuilder} */ ((window as any).report));
 });
 
-/**
- * @param {ReportBuilder} REPORT
- */
-function addReportActions(REPORT) {
+function addReportActions(REPORT: ReportBuilder) {
   if (!REPORT) return;
   const groupManager = REPORT.getGroupManager();
   const insertManager = REPORT.getPendingInsertManager();
 
-  status.socket.emit('db.files', REPORT.getProjectId(), (fileIds) => {
+  rpc.db.files(REPORT.getProjectId()).then((fileIds) => {
     // Centralized config to avoid duplicate objects
     const FILE_GROUPS = {
       frame: {
@@ -189,7 +189,7 @@ function addReportActions(REPORT) {
 
     commandPalette.addAction({
       callback: (_value) => {
-        groupManager.create({ title: 'New Group' });
+        groupManager.create({ elements: [], title: 'New Group' });
       },
       icon: 'group',
       label: 'Add Group',
@@ -198,8 +198,8 @@ function addReportActions(REPORT) {
 }
 
 async function addGeneralActions() {
-  const projects = await status.socket.emitWithAck('local.projects');
-  status.socket.emit('db.projects', (projectIds) => {
+  const projects = await rpc.projects.get();
+  rpc.db.projects().then((projectIds) => {
     const ids = Array.isArray(projectIds) ? projectIds : [projectIds];
     const locals = Array.isArray(projects) ? projects : [projects];
 
@@ -209,22 +209,25 @@ async function addGeneralActions() {
       },
       icon: 'arrow-left-right',
       label: 'Switch Project',
-      tab: locals.map(({ title }) => ({
+      tab: locals.map(({ title, path }) => ({
         description: 'Switch project',
         label: title,
-        value: title,
+        value: path,
       })),
     });
 
     if (!(window as any).report)
       commandPalette.addAction({
-        callback: (_value) => {},
+        callback: async (value) => {
+          const { path } = await rpc.projects.create(value);
+          globalThis.location.pathname = path;
+        },
         icon: 'layers-plus',
         label: 'Create Project',
         tab: ids.map(({ id, path }) => ({
           description: 'Create Project',
           label: path,
-          value: { id },
+          value: id,
         })),
       });
   });
@@ -233,11 +236,11 @@ async function addGeneralActions() {
 /**
  * @param {ReportBuilder} report
  */
-function addEventListeners(report) {
+function addEventListeners(report: ReportBuilder) {
   if (!report) return;
 
   report.addEventListener('group:create', (e) => {
-    status.socket.emit('local.project', report.getProjectTitle(), {
+    rpc.project.edit(report.getProjectId(), {
       ...e.detail,
       type: 'group:create',
     });
@@ -245,39 +248,42 @@ function addEventListeners(report) {
   });
 
   report.addEventListener('group:move', (e) => {
-    status.socket.emit('local.project', report.getProjectTitle(), {
+    rpc.project.edit(report.getProjectId(), {
       ...e.detail,
       type: 'group:move',
     });
+
     console.log('Group moved', e.detail);
   });
-
   report.addEventListener('group:delete', (e) => {
-    status.socket.emit('local.project', report.getProjectTitle(), {
+    rpc.project.edit(report.getProjectId(), {
       ...e.detail,
       type: 'group:delete',
     });
+
     console.log('Group deleted', e.detail);
   });
 
   report.addEventListener('element:create', (e) => {
-    status.socket.emit('local.project', report.getProjectTitle(), {
+    rpc.project.edit(report.getProjectId(), {
       ...e.detail,
       type: 'element:create',
     });
+
     console.log('Element created', e.detail);
   });
 
   report.addEventListener('element:move', (e) => {
-    status.socket.emit('local.project', report.getProjectTitle(), {
+    rpc.project.edit(report.getProjectId(), {
       ...e.detail,
       type: 'element:move',
     });
+
     console.log('Element moved', e.detail);
   });
 
   report.addEventListener('element:update', (e) => {
-    status.socket.emit('local.project', report.getProjectTitle(), {
+    rpc.project.edit(report.getProjectId(), {
       ...e.detail,
       type: 'element:update',
     });
@@ -286,10 +292,11 @@ function addEventListeners(report) {
   });
 
   report.addEventListener('element:delete', (e) => {
-    status.socket.emit('local.project', report.getProjectTitle(), {
+    rpc.project.edit(report.getProjectId(), {
       ...e.detail,
       type: 'element:delete',
     });
+
     console.log('Element deleted', e.detail);
   });
 }

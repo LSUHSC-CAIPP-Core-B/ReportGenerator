@@ -127,8 +127,8 @@ export class CommandPalette {
 
     const cmds = this.getRecentCommands();
     const selected = cmds.find(({ label }) => {
-      var lower = label.toLowerCase();
-      var index = lower.indexOf(query);
+      const lower = label.toLowerCase();
+      const index = lower.indexOf(query);
       if (index === 0) return true;
 
       // needs to be start of word
@@ -255,7 +255,7 @@ export class CommandPalette {
     let action = this.currentActions.find((action) => action.element === element);
     if (!action) return;
 
-    if (action.tab) {
+    if (action.tab?.length > 0) {
       this.pushTab(action.tab, '', action);
       return false;
     }
@@ -343,12 +343,12 @@ export class CommandPalette {
     if (child != null) child.appendChild(this.charReturn);
   }
 
-  overlayClickListener(event: MouseEvent) {
+  overlayClickListener(_event: MouseEvent) {
     const selected = this.charReturn.parentElement;
     this.forceNoClose = !this.select(selected);
   }
 
-  documentInputChangeListener(event: InputEvent) {
+  documentInputChangeListener(_event: InputEvent) {
     const fuse = new Fuse(this.currentActions, {
       // Ignore accents
       ignoreDiacritics: true,
@@ -446,7 +446,7 @@ export class CommandPalette {
     this.executeSearch();
   }
 
-  async close() {
+  close() {
     this.isOpen = false;
     this.overlay.style.display = 'none';
 

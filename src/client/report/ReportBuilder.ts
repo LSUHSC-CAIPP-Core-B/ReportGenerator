@@ -1,3 +1,4 @@
+import type { ProjectAction } from '../../shared/index.ts';
 import { DragDropManager } from './managers/DragDropManager.ts';
 import { ElementManager } from './managers/ElementManager.ts';
 import { GroupManager } from './managers/GroupManager.ts';
@@ -85,11 +86,10 @@ export class ReportBuilder extends EventTarget {
     this.layout.destroy();
   }
 
-  emit(type, detail = {}) {
+  emit<Action extends ProjectAction>(type: Action['type'], detail: Omit<Action, 'type'>) {
     this.dispatchEvent(
       new CustomEvent(type, {
         detail: {
-          report: this,
           timestamp: Date.now(),
           ...detail,
         },

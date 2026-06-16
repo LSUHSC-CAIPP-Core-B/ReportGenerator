@@ -3,7 +3,7 @@
   <span class="b-cmd-palette" id="cmd-palette">
     <label class="command-search">
       <i class="icon-search"></i>
-      <input type="text" name="search" placeholder="Search" id="cmd-search">
+      <input type="text" name="search" placeholder="Search" id="cmd-search" autocomplete="off">
 
       <span class="search-key">( {% element "i" -%}
         {%- attribute name: 'class', value: 'icon-command', if: os.name contains "macOS" -%}
