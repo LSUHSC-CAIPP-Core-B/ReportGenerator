@@ -37,14 +37,15 @@ export function isDescendant(manager: GroupManager, parentId: string, childId: s
 export function iterateGroups(
   manager: GroupManager,
   startIndex: number,
-  callback: (group: ReportGroup, index: number) => boolean | undefined,
+  callback: (group: ReportGroup, index: number) => any,
 ) {
   const size = manager.getGroupOrderSize();
   for (let index = startIndex; index < size; index++) {
     const identifier = manager.getGroupId(index);
     const group = manager.getGroup(identifier);
 
-    const breakOut = callback(group, index) === false;
-    if (breakOut) break;
+    const result = callback(group, index);
+    if (result == null) continue;
+    else if (typeof result !== 'boolean' || !result) break;
   }
 }

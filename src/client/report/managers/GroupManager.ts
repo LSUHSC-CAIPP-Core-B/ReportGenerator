@@ -1,3 +1,4 @@
+import type { ProjectActionType } from '../../../shared/index.ts';
 import { ReportGroup } from '../models/ReportGroup.ts';
 import type { ReportBuilder } from '../ReportBuilder.ts';
 import { GroupRenderer } from '../renderers/GroupRenderer.ts';
@@ -19,14 +20,9 @@ export class GroupManager {
   create({
     title,
     elements = [],
-    identifier = createIdentifier(),
+    groupId = createIdentifier(),
     parentId = null,
-  }: {
-    title: string;
-    elements: any[];
-    identifier?: string;
-    parentId?: string | null;
-  }) {
+  }: ProjectActionType<'group:create', 'type' | 'groupId' | 'parentId'>) {
     const depth = parentId ? (this.groups.get(parentId)?.depth ?? 0) + 1 : 0;
 
     const layoutManager = this.report.getLayoutManager();
@@ -34,29 +30,33 @@ export class GroupManager {
     const elementManager = this.report.getElementManager();
     const insertManager = this.report.getPendingInsertManager();
 
-    const { entry: menuEntry, content } = layoutManager.create({ depth, identifier, title });
+    const { entry: menuEntry, content } = layoutManager.create({
+      depth,
+      identifier: groupId,
+      title,
+    });
 
     if (parentId) layoutManager.getMenuEntry(parentId)?.classList.toggle('collapsable', true);
 
     const group = new ReportGroup({
       content,
       depth,
-      identifier,
+      identifier: groupId,
       menuEntry,
       parentId,
       title,
     });
 
-    this.groups.set(identifier, group);
-    this.groupOrder.push(identifier);
+    this.groups.set(groupId, group);
+    this.groupOrder.push(groupId);
 
-    for (const element of elements) elementManager.addElementToGroup(identifier, element);
+    for (const options of elements) elementManager.insertElementIntoGroup({ groupId, options });
 
-    dragDropManager.attachGroupEvents(identifier);
-    insertManager.attachGroupEvents(identifier);
+    dragDropManager.attachGroupEvents(groupId);
+    insertManager.attachGroupEvents(groupId);
 
     this.report.emit('group:create', {
-      groupId: identifier,
+      groupId: groupId,
       parentId,
       title,
     });
@@ -69,7 +69,11 @@ export class GroupManager {
    * @param {string} targetId
    * @param {'before'|'after'|'inside'} position
    */
-  moveGroup(groupId: string, targetId: string, position: 'before' | 'after' | 'inside' = 'after') {
+  moveGroup({
+    groupId,
+    targetId,
+    position = 'after',
+  }: ProjectActionType<'group:move', 'position' | 'type'>) {
     if (groupId === targetId) return;
 
     const movingSubtree = this.getSubtree(groupId);
@@ -113,7 +117,7 @@ export class GroupManager {
     });
   }
 
-  deleteGroup(groupId: string) {
+  deleteGroup({ groupId }: ProjectActionType<'group:delete', 'type'>) {
     const group = this.groups.get(groupId);
     if (!group) return;
 

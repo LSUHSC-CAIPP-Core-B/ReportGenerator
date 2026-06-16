@@ -163,30 +163,5 @@ export class RPCServer {
         });
       }
     });
-
-    // for (const namespace of Object.keys(this.handlers) as (keyof RPC)[]) {
-    //   const group = this.handlers[namespace];
-
-    //   for (const method of Object.keys(group) as (keyof RPC[keyof RPC])[]) {
-    //     const handler: Function = group[method];
-
-    //     console.log(`${namespace}.${method}`);
-    //     const listener = async (...args: any[]) => {
-    //       console.log(`${namespace}.${method}`, args);
-
-    //       const callback: Function = typeof args.at(-1) === 'function' ? args.pop() : null;
-    //       const [err, result] = await catchErrorTyped<any, ErrorConstructor>(handler(...args));
-
-    //       if (callback)
-    //         callback({
-    //           data: result,
-    //           error: String(err),
-    //           success: err == null,
-    //         });
-    //     };
-
-    //     socket.on(`${namespace}.${method}`, listener as any);
-    //   }
-    // }
   }
 }

@@ -36,4 +36,4 @@ export const COMPLETE_DATABASE_URL = urlObject.toString().replace(/^[^:]+/g, DAT
 export const ASSETS_DIRECTORY = resolvePath(cwd(), 'src', 'assets');
 export const WEBSERVER_PORT = _serverPort;
 
-export { DATABASE_URL, DATABASE_USER, DATABASE_PASS, DATABASE_NAME, APP_NAME };
+export { APP_NAME, DATABASE_NAME, DATABASE_PASS, DATABASE_URL, DATABASE_USER };
