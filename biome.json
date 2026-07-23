@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -14,7 +14,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["src/**", "!**/external"]
+    "includes": ["**", "src/**/*", "!node_modules/"]
   },
   "formatter": {
     "enabled": true,
@@ -40,17 +40,18 @@
     "enabled": true,
     "rules": {
       "complexity": {
-        "noBannedTypes": "info"
+        "noBannedTypes": "warn"
       },
       "correctness": {
-        "noUnreachable": "info"
+        "noUnreachable": "warn"
       },
       "recommended": true,
       "style": {
+        "noNonNullAssertion": "info",
         "useImportType": "on"
       },
       "suspicious": {
-        "noExplicitAny": "info"
+        "noExplicitAny": "warn"
       }
     }
   },

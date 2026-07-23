@@ -1,6 +1,32 @@
 {
   "author": "Sebastian Sereno",
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "type-enum": [
+      "build",
+      "chore",
+      "ci",
+      "docs",
+      "feat",
+      "fix",
+      "patch",
+      "perf",
+      "refactor",
+      "revert",
+      "style",
+      "test"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
   "dependencies": {
+    "commitlint": "^21.2.1",
+    "cz-conventional-changelog": "^3.3.0",
     "express": "^5.2.1",
     "fuse.js": "^7.4.2",
     "liquidjs": "^10.27.0",
@@ -30,6 +56,17 @@
   "license": "GPL-3.0",
   "main": "index.js",
   "name": "report-generator",
+  "nodemonConfig": {
+    "exec": "npx ts-node -r dotenv/config ./src/server/app.ts",
+    "ext": "ts,json",
+    "ignore": [
+      "src/**/*.spec.ts",
+      "src/client/**"
+    ],
+    "watch": [
+      "src/"
+    ]
+  },
   "private": true,
   "repository": "https://github.com/LSUHSC-CAIPP-Core-B/ReportGenerator.git",
   "scripts": {

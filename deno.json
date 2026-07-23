@@ -1,17 +1,18 @@
 {
   "exclude": ["./src/server/constants.ts"],
+  "imports": {
+    "mongoose": "npm:mongoose",
+    "prosemirror-commands": "npm:prosemirror-commands",
+    "prosemirror-keymap": "npm:prosemirror-keymap",
+    "prosemirror-model": "npm:prosemirror-model",
+    "prosemirror-schema-basic": "npm:prosemirror-schema-basic",
+    "prosemirror-state": "npm:prosemirror-state",
+    "prosemirror-transform": "npm:prosemirror-transform",
+    "prosemirror-view": "npm:prosemirror-view"
+  },
   "lint": {
     "rules": {
       "exclude": ["no-attribute-type"]
     }
-  },
-  "imports": {
-    "prosemirror-model": "npm:prosemirror-model",
-    "prosemirror-state": "npm:prosemirror-state",
-    "prosemirror-transform": "npm:prosemirror-transform",
-    "prosemirror-view": "npm:prosemirror-view",
-    "prosemirror-commands": "npm:prosemirror-commands",
-    "prosemirror-keymap": "npm:prosemirror-keymap",
-    "prosemirror-schema-basic": "npm:prosemirror-schema-basic"
   }
 }
