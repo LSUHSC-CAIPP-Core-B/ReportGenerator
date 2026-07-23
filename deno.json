@@ -1,5 +1,5 @@
 {
-  "exclude": ["./src/server/constants.ts"],
+  "exclude": [],
   "imports": {
     "mongoose": "npm:mongoose",
     "prosemirror-commands": "npm:prosemirror-commands",

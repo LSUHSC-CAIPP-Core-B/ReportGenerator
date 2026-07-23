@@ -35,7 +35,8 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "ua-parser-js": "^2.0.10",
-    "url": "^0.11.4"
+    "url": "^0.11.4",
+    "zod": "^4.4.3"
   },
   "description": "A light weight report generator, using PathAtlas, to create reports based on templates.",
   "devDependencies": {
@@ -48,6 +49,7 @@
     "lefthook": "^2.1.9",
     "nodemon": "^3.1.14",
     "ts-loader": "^9.6.1",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^6.0.3",
     "webpack": "^5.107.2",
     "webpack-cli": "^7.0.3",
