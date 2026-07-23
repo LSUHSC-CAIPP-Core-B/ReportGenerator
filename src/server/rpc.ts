@@ -1,12 +1,12 @@
 import type { Server as HTTPServer } from 'node:http';
-import { Types } from 'mongoose';
+import { RPC_EVENT, type RPCSentRequest } from 'common/rpc/transport.ts';
+import type { RPC } from 'common/rpc/types.ts';
+import { server as $appServer } from 'server/app.ts';
 import { Server, type Socket } from 'socket.io';
-import { RPC_EVENT, type RPCSentRequest } from '../shared/rpc/transport.ts';
-import type { RPC } from '../shared/rpc/types.ts';
-import { server as $appServer } from './app.ts';
-import { ProjectModel } from './database/schemas.ts';
-import projects from './projects/index.ts';
 
+/**
+ * Client Connection
+ */
 export class RPCConnection {
   private connectCallbacks = new Set<(socket: Socket) => void>();
   private disconnectCallbacks = new Set<(socket: Socket, reason: string) => void>();
@@ -40,88 +40,35 @@ export class RPCConnection {
   }
 }
 
+/**
+ * RPC Request Handler
+ */
 const HANDLERS: RPC = {
   db: {
     async files(projectIdStr) {
-      if (!projectIdStr?.match(/^[a-f\d]{24}$/gi)) throw Error('Invalid project id');
-
-      const projectId = Types.ObjectId.createFromHexString(projectIdStr);
-
-      return await ProjectModel.aggregate([
-        { $match: { _id: projectId } },
-        { $unwind: '$files' },
-        {
-          $lookup: {
-            as: 'file',
-            foreignField: '_id',
-            from: 'files',
-            localField: 'files',
-          },
-        },
-        { $unwind: '$file' },
-        {
-          $replaceRoot: {
-            newRoot: {
-              id: '$file._id',
-              path: '$file.path',
-              type: '$file.type',
-            },
-          },
-        },
-      ]);
+      return [];
     },
     async projects() {
-      return await ProjectModel.aggregate([
-        {
-          $replaceRoot: {
-            newRoot: {
-              id: '$_id',
-              path: '$path',
-            },
-          },
-        },
-      ]);
+      return [];
     },
   },
   project: {
-    async edit(projectId, action) {
-      await projects.applyAction(projectId, action);
-
-      //     socket.to(projectId).emit('local.project.updated', {
-      //       action,
-      //       updated,
-      //     });
-      //   } catch (err) {
-      //     console.log(err);
-
-      //     socket.emit('local.project.error', {
-      //       action,
-      //       error: String(err),
-      //     });
-      //   }
-    },
+    async edit(projectId, action) {},
   },
+
   projects: {
-    async create(projectIdStr: string) {
-      if (!projectIdStr?.match(/^[a-f\d]{24}$/gi)) throw Error('Invalid project id');
-      const projectId = Types.ObjectId.createFromHexString(projectIdStr);
-
-      const $project = (
-        await ProjectModel.aggregate([
-          { $match: { _id: projectId } },
-          { $replaceRoot: { newRoot: { path: '$path' } } },
-        ])
-      )[0];
-
-      const title: string = $project?.path ?? projectIdStr;
-      return await projects.createProject({ project: projectIdStr, title });
+    async create(projectIdStr) {
+      return {};
     },
     async get() {
-      return await projects.getAllProjects();
+      return [];
     },
   },
-} as const;
+};
 
+/**
+ * RPC Server
+ */
 export class RPCServer {
   readonly connection: RPCConnection;
 

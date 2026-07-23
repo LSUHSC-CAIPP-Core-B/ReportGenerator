@@ -51,7 +51,8 @@
         "useImportType": "on"
       },
       "suspicious": {
-        "noExplicitAny": "warn"
+        "noExplicitAny": "warn",
+        "noFallthroughSwitchClause": "info"
       }
     }
   },

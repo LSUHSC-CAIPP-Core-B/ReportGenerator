@@ -1,20 +1,11 @@
 import { createServer } from 'node:http';
-import { WEBSERVER_PORT } from './constants.ts';
-import { connectDB } from './database/index.ts';
+import { env } from './config/env.ts';
 import app from './express.ts';
-import { RPCServer } from './rpc-server.ts';
+import { RPCServer } from './rpc.ts';
 
 export const server = createServer(app);
 new RPCServer(server);
 
-server.listen(WEBSERVER_PORT, async () => {
-  try {
-    console.log(`Listening on http://127.0.0.1:${WEBSERVER_PORT}`);
-    await connectDB();
-  } catch (e) {
-    console.error(e);
-    await new Promise((resolve: (value: number) => void, reject) => {
-      server.close((err) => (err ? reject(err) : resolve(1)));
-    }).then(() => process.exit(1));
-  }
+server.listen(env.WEBSERVER_PORT, async () => {
+  console.log(`Listening on http://127.0.0.1:${env.WEBSERVER_PORT}`);
 });

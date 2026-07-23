@@ -17,5 +17,7 @@
     "source.fixAll.biome": "explicit"
   },
   "editor.formatOnSave": true,
+  "editor.indentSize": "tabSize",
+  "editor.tabSize": 2,
   "files.autoSave": "onFocusChange"
 }
