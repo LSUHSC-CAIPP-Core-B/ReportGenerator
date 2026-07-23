@@ -1,4 +1,7 @@
 {
+  "[html]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
   "[javascript]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
@@ -8,15 +11,11 @@
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
-  "[html]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
+  "deno.enable": true,
   "editor.codeActionsOnSave": {
     "source.action.useSortedKeys.biome": "explicit",
     "source.fixAll.biome": "explicit"
   },
   "editor.formatOnSave": true,
-  "files.autoSave": "onFocusChange",
-  "deno.enable": true,
-  //  "deno.enablePaths": ["src/client/", "src/shared/"],
+  "files.autoSave": "onFocusChange"
 }
