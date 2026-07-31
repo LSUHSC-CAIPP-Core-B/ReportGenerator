@@ -12,7 +12,7 @@
   },
   "lint": {
     "rules": {
-      "exclude": ["no-attribute-type"]
+      "exclude": ["no-attribute-type", "no-local"]
     }
   }
 }

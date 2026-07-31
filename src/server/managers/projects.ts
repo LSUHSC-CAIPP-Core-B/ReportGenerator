@@ -11,22 +11,23 @@ import {
   type ProjectGroupDef,
   type ProjectInfo,
   type ProjectReport,
-} from 'common/types/projects.ts';
+} from 'common/project/types.ts';
 import { catchErrorTyped, createIdentifier, stripFunctions } from 'common/utilities.ts';
 import { Config, DataError, JsonDB } from 'node-json-db';
 
 const config = new Config('projects.db', true, true, '/');
 
-interface ProjectManager2 {
+interface ProjectManager {
+  readonly database: JsonDB;
   readonly report: ProjectReport;
   readonly groups: GroupManager;
   readonly elements: ProjectElementManager;
 
   delete(): void;
-  patch(data: Partial<ProjectReport>): ProjectManager2;
-  replace(self: ProjectReport): ProjectManager2;
+  patch(data: Partial<ProjectReport>): ProjectManager;
+  replace(self: ProjectReport): ProjectManager;
 
-  apply(action: ProjectAction): ProjectManager2;
+  apply(action: ProjectAction): ProjectManager;
 }
 
 interface ProjectElementManager {
@@ -39,8 +40,9 @@ interface ProjectElementManager {
 }
 
 interface GroupManager extends TreeManager<ProjectGroup>, ReorderManager<ProjectGroup> {
+  readonly database: JsonDB;
   readonly report: ProjectReport;
-  readonly project: ProjectManager2;
+  readonly project: ProjectManager;
   readonly elements: ProjectElementManager;
 
   popById(groupId: string): ProjectGroup | undefined;
@@ -56,8 +58,9 @@ interface ElementManager extends ReorderManager<ProjectElement> {
   delete(elementId: string): ProjectElement | undefined;
   update(elementId: string, data: Record<string, any>): unknown;
 
+  readonly database: JsonDB;
   readonly report: ProjectReport;
-  readonly project: ProjectManager2;
+  readonly project: ProjectManager;
   readonly group: ProjectGroup;
 }
 
@@ -68,22 +71,21 @@ class ProjectDatabase {
     this.database = new JsonDB(config);
   }
 
-  async getProject(projectId: string): Promise<ProjectManager2 | undefined> {
-    if (typeof projectId !== 'string') {
-      throw new ProjectError('Project id is not a string');
+  async getProject(path: string): Promise<ProjectManager | undefined> {
+    if (typeof path !== 'string') {
+      throw new ProjectError('Path is not a string');
+    } else if (!path?.trim()) {
+      throw new ProjectError('Path is required');
     }
-    if (!projectId?.trim()) {
-      throw new ProjectError('Project id is required');
-    }
-
-    const path = projectId?.toLowerCase();
 
     const [error, report] = await catchErrorTyped(
-      this.database.getObject<ProjectReport>(`/${path}`),
+      this.database.getObject<ProjectReport>(`/${path.toLowerCase()}`),
       [DataError],
     );
 
     if (error) return undefined;
+    Object.assign(report, { path });
+
     await this.database.push(`/${path}/last_opened`, new Date().toISOString(), true);
     return getProjectManager(report, this.database);
   }
@@ -103,27 +105,28 @@ class ProjectDatabase {
     project,
     title = project,
     path = project?.toLowerCase(),
-  }: ProjectDef): Promise<ProjectManager2> {
-    if (typeof project !== 'string') {
-      throw new ProjectError('Project id is not a string');
-    }
+  }: ProjectDef): Promise<ProjectInfo> {
+    // if (typeof identifier !== 'string') {
+    //   throw new ProjectError('Project id is not a string');
+    // } else if (!identifier?.trim()) {
+    //   throw new ProjectError('Project id is required');
+    // }
 
-    if (!project?.trim()) {
-      throw new ProjectError('Project id is required');
-    }
+    if (!title || typeof title !== 'string') throw new ProjectError('Project title is required');
+    if (!path || typeof path !== 'string') throw new ProjectError('Project path is required');
 
     const exists = await this.database.exists(`/${path}`);
     if (exists) throw new ProjectError(`Project path already exists: ${path}`);
 
     const report = {
-      identifier: path,
       last_opened: new Date().toISOString(),
+      path,
       project,
       title,
     } satisfies ProjectReport;
 
     await this.database.push(`/${path}`, report, true);
-    return Object.assign(report, getProjectManager(report, this.database));
+    return { last_opened: report.last_opened, path, title };
   }
 }
 
@@ -152,12 +155,15 @@ function recomputeDepth(groups: ProjectGroup[]) {
   }
 }
 
-function getProjectManager(report: ProjectReport, database: JsonDB): ProjectManager2 {
-  const MANAGER: Pick<ProjectManager2, 'report' | 'groups'> = { report } as ProjectManager2;
-  Object.assign(MANAGER, { groups: getGroupManager(MANAGER as ProjectManager2, report) });
+function getProjectManager(report: ProjectReport, database: JsonDB): ProjectManager {
+  const MANAGER: Pick<ProjectManager, 'report' | 'groups' | 'database'> = {
+    database,
+    report,
+  } as ProjectManager;
+  Object.assign(MANAGER, { groups: getGroupManager(MANAGER as ProjectManager, report) });
 
   return Object.assign(MANAGER, {
-    apply(this: ProjectManager2, action) {
+    apply(this: ProjectManager, action) {
       switch (action.type) {
         case 'group:create':
           this.groups.create(action.options);
@@ -191,24 +197,24 @@ function getProjectManager(report: ProjectReport, database: JsonDB): ProjectMana
           throw new Error(`Invalid action type: ${action satisfies never}`);
       }
 
-      return this as ProjectManager2;
+      return this as ProjectManager;
     },
 
-    delete: () => database.delete(`/${report.identifier}`),
+    delete: () => database.delete(`/${report.project}`),
 
     elements: getProjectElementManager(MANAGER.groups),
 
     patch(data: Partial<ProjectReport>) {
       Object.assign(report, stripFunctions(data));
-      return this as ProjectManager2;
+      return this as ProjectManager;
     },
 
     // Remove existing functions (or other ProjectManager functions)
     replace(self: ProjectReport) {
       Object.assign(report, stripFunctions(self));
-      return this as ProjectManager2;
+      return this as ProjectManager;
     },
-  } satisfies Omit<ProjectManager2, 'report' | 'groups'>);
+  } satisfies Omit<ProjectManager, 'report' | 'groups' | 'database'>);
 }
 
 function getProjectElementManager(groups: GroupManager): ProjectElementManager {
@@ -231,18 +237,22 @@ function getProjectElementManager(groups: GroupManager): ProjectElementManager {
 
     update(this: ProjectElementManager, action) {
       const parent = this.groups.getAll().find(({ elements }) => {
-        return elements.some(({ id }) => id === action.elementId);
+        return elements.some(({ identifier }) => identifier === action.elementId);
       });
 
       if (!parent) return;
 
-      this.groups.getElements(parent.id)?.update(action.elementId, action.data);
+      this.groups.getElements(parent.identifier)?.update(action.elementId, action.data);
     },
   } satisfies Omit<ProjectElementManager, 'groups'>);
 }
 
-function getGroupManager(project: ProjectManager2, report: ProjectReport): GroupManager {
-  const MANAGER: Pick<GroupManager, 'project' | 'report'> = { project, report };
+function getGroupManager(project: ProjectManager, report: ProjectReport): GroupManager {
+  const MANAGER: Pick<GroupManager, 'project' | 'report' | 'database'> = {
+    database: project.database,
+    project,
+    report,
+  };
 
   return Object.assign(
     MANAGER,
@@ -254,12 +264,12 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
           }),
         ) as ProjectGroupDef;
 
-        const group = Object.assign(groupDef, { elements: [], id: createIdentifier() });
+        const group = Object.assign(groupDef, { elements: [], identifier: createIdentifier() });
 
         this.put(group);
 
         if (action.elements) {
-          const elementManager = this.getElements(group.id)!;
+          const elementManager = this.getElements(group.identifier)!;
 
           for (const element of action.elements) {
             elementManager.create(element);
@@ -272,7 +282,7 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
         this.getAll()
           .filter(({ parentId }) => parentId === action.groupId)
           .map(
-            ({ id: groupId }) =>
+            ({ identifier: groupId }) =>
               ({ groupId, type: 'group:delete' }) satisfies ProjectActionType<'group:delete'>,
           )
           .forEach(this.delete);
@@ -283,11 +293,11 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
       elements: getProjectElementManager(MANAGER as GroupManager),
 
       getById(id) {
-        return this.getAll().find(({ id: self }) => self === id);
+        return this.getAll().find(({ identifier: self }) => self === id);
       },
 
       getChildren(this: GroupManager, parent) {
-        return this.getAll().filter(({ parentId }) => parent.id === parentId);
+        return this.getAll().filter(({ parentId }) => parent.identifier === parentId);
       },
 
       getCollection(this: GroupManager) {
@@ -300,7 +310,7 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
       },
 
       getParent(this: GroupManager, child) {
-        return this.getAll().find(({ id }) => id === child.parentId);
+        return this.getAll().find(({ identifier }) => identifier === child.parentId);
       },
 
       move(action) {
@@ -318,7 +328,7 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
             this.put(group, index + 1);
 
             // Make sure the parent is set to the target
-            group.parentId = target.id;
+            group.parentId = target.identifier;
             break;
           }
 
@@ -349,7 +359,7 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
 
       popById(this: GroupManager, groupId: string) {
         const collection = this.getCollection();
-        const index = collection.findIndex(({ id }) => id === groupId);
+        const index = collection.findIndex(({ identifier }) => identifier === groupId);
         return collection.splice(index, 1)[0];
       },
 
@@ -357,7 +367,8 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
         let target: ProjectGroup = child;
         const groups = this.getAll();
 
-        while (target.parentId != null) target = groups.find(({ id }) => id === target.parentId)!;
+        while (target.parentId != null)
+          target = groups.find(({ identifier }) => identifier === target.parentId)!;
         return target !== child ? target : undefined;
       },
 
@@ -395,7 +406,7 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
 
           // GroupManager.put() might have given a different
           // parent, let's ensure the parent is correct
-          child.parentId = parent?.id;
+          child.parentId = parent?.identifier;
         } else if (!parent && child.parentId) {
           // The child might already be an orphan
           const highestParent = this.resolveHighestParent(child);
@@ -416,7 +427,7 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
       },
 
       ...ReorderManagerDefaults(),
-    } satisfies Omit<GroupManager, 'project' | 'report'>,
+    } satisfies Omit<GroupManager, 'project' | 'report' | 'database'>,
     {
       put(this: GroupManager, element: ProjectGroup, index?: number) {
         const collection = this.getCollection();
@@ -451,19 +462,24 @@ function getGroupManager(project: ProjectManager2, report: ProjectReport): Group
 }
 
 function getElementManager(
-  project: ProjectManager2,
+  project: ProjectManager,
   report: ProjectReport,
   groupId: string,
 ): ElementManager | undefined {
-  const group = report.groups?.find(({ id }) => id === groupId);
+  const group = report.groups?.find(({ identifier }) => identifier === groupId);
   if (!group) return;
 
-  const MANAGER: Pick<ElementManager, 'project' | 'report' | 'group'> = { group, project, report };
+  const MANAGER: Pick<ElementManager, 'project' | 'report' | 'group' | 'database'> = {
+    database: project.database,
+    group,
+    project,
+    report,
+  };
 
   return Object.assign(MANAGER, {
     create(partial, index) {
       const element: ProjectElement = Object.assign(
-        { id: createIdentifier() },
+        { identifier: createIdentifier() },
         partial,
       ) as ProjectElement;
 
@@ -473,7 +489,7 @@ function getElementManager(
 
     delete(this: ElementManager, elementId) {
       const collection = this.getCollection();
-      const index = collection.findIndex(({ id }) => id === elementId);
+      const index = collection.findIndex(({ identifier }) => identifier === elementId);
       return index >= 0 ? collection.splice(index, 1)[0] : undefined;
     },
 
@@ -484,10 +500,10 @@ function getElementManager(
 
     update(elementId, data) {
       const collection = this.getCollection();
-      const element = collection.find(({ id }) => id === elementId);
+      const element = collection.find(({ identifier }) => identifier === elementId);
       return element ? Object.assign(element, data) : undefined;
     },
 
     ...ReorderManagerDefaults(),
-  } satisfies Omit<ElementManager, 'project' | 'report' | 'group'>);
+  } satisfies Omit<ElementManager, 'project' | 'report' | 'group' | 'database'>);
 }

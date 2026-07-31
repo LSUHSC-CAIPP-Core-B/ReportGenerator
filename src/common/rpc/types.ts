@@ -1,5 +1,5 @@
-import type { ProjectAction } from '../actions.ts';
-import type { DatabaseFile, DatabaseProject, ProjectInfo } from '../models.ts';
+import type { DatabaseFile, DatabaseProject } from 'common/database/types.ts';
+import type { ProjectAction, ProjectInfo } from 'common/project/types.ts';
 
 export type RPC = {
   db: {

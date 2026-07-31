@@ -3,13 +3,13 @@ export interface TreeManager<T extends TreeElement> {
   getParent(child: T): T | undefined;
   getChildren(parent: T): T[];
 
-  getById(id: T['id']): T | undefined;
+  getById(id: T['identifier']): T | undefined;
   resolveHighestParent(child: T): T | undefined;
   resolveNextSibling(child: T): T | undefined;
   resolveLastInHierarchy(parent: T): T | undefined;
 }
 
 export type TreeElement = {
-  id: string;
+  identifier: string;
   parentId?: string | null;
 };
