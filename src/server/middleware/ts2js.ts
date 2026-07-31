@@ -21,13 +21,15 @@ fs.mkdirSync(TMP_DIR, { recursive: true });
 function compileTsFile(srcPath: string, outPath: string): string {
   const source = fs.readFileSync(srcPath, 'utf8');
 
-  const { outputText } = ts.transpileModule(source, {
+  let { outputText } = ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.ESNext,
       sourceMap: false, // enable if you actually serve maps
       target: ts.ScriptTarget.ES2020,
     },
   });
+
+  outputText = outputText.replace(/(?<=from\s*')(client|common)/g, '/$1');
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, outputText, 'utf8');

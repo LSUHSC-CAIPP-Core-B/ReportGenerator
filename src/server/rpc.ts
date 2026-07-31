@@ -2,6 +2,7 @@ import type { Server as HTTPServer } from 'node:http';
 import { RPC_EVENT, type RPCSentRequest } from 'common/rpc/transport.ts';
 import type { RPC } from 'common/rpc/types.ts';
 import { server as $appServer } from 'server/app.ts';
+import projects from 'server/managers/projects.ts';
 import { Server, type Socket } from 'socket.io';
 
 /**
@@ -53,15 +54,17 @@ const HANDLERS: RPC = {
     },
   },
   project: {
-    async edit(projectId, action) {},
+    async edit(projectId, action) {
+      (await projects.getProject(projectId))!.apply(action);
+    },
   },
 
   projects: {
     async create(projectIdStr) {
-      return {};
+      return await projects.createProject({ project: projectIdStr });
     },
     async get() {
-      return [];
+      return await projects.getAllProjects();
     },
   },
 };
