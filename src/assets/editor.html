@@ -51,12 +51,93 @@
     }
 
     var {
+      position: relative;
+      
+      display: inline;
+      
+      /* width: 100%; */
+      overflow: hidden;
+      
       font-style: inherit;
+      isolation: isolate;
 
       &.active {
-        background-color: #3d8fdf9d;
+        color: var(--color, inherit);
+        background-color: var(--background-color, #3d8fdf9d);
+      }
+
+      &::before {
+        position: absolute;
+        inset: 0;
+        
+        top: 0;
+        left: 0%;
+        z-index: 1;
+        
+        width: 100%;
+        height: 100%;
+        
+        overflow: hidden;
+        pointer-events: none;
+        
+        content: "";
+        
+        background: linear-gradient(120deg, transparent 40%, var(--background-color, #3d8fdf9d) 50%, transparent 60%);
+
+
+    /* red 0%,
+    red 50%,
+    transparent 50% */
+
+        background-size: 600% 100%;
+        /* transition: all 650ms; */
+        animation: glint 4s linear infinite;
       }
     }
+
+    @keyframes glint {
+      0% {
+        background-position: 200% 0;
+      }
+      80% {
+        background-position: 100% 0;
+      }
+      100% {
+        background-position: 100% 0;
+      }
+    }
+    
+      var:nth-of-type(6n+1) {
+        /* color: #ff99a2; */
+        --background-color: #ff000066;
+        --color: #d60000;
+      }
+      var:nth-of-type(6n+2) {
+        /* color: #ffb8b3; */
+        --background-color: #ff80004d;
+        --color: #ce6700;
+      }
+      var:nth-of-type(6n+3) {
+        /* color: #ffdac2; */
+        --background-color: #ffff003d;
+        --color: #b5b500;
+      }
+      var:nth-of-type(6n+4) {
+        /* color: #e2f0cc; */
+        --background-color: #80ff0042;
+        --color: #5cb700;
+      }
+      var:nth-of-type(6n+5) {
+        /* color: #b3ead6; */
+        --background-color: #00ffaa61;
+        --color: #00af75;
+      }
+      var:nth-of-type(6n+6) {
+        /* color: #c8ceea; */
+        --background-color: #4659b94d;
+        --color: #3f50a6;
+      }
+
   </style>
 
 <script type="importmap">
@@ -67,15 +148,29 @@
   }
   </script>
 
-  <script src="client/editor/SelectionManager.js" type="module" defer></script>
+  <!-- <script src="client/editor/SelectionManager.js" type="module" defer></script> -->
+  <script type="module">
+    import { DocumentEditor } from '/client/editor/Editor.js';
+
+    // import { DocumentEditor } from '/client/editor/SelectionManager.js';
+
+    window.addEventListener('load', () => {
+      new DocumentEditor('.editor#editor');
+    })
+  </script>
 </head>
 <body>
 
   <div class="center">
-    <pre id="editor" class="editor" contenteditable="true">
+    <!-- <pre id="editor" class="editor" contenteditable="true">
 Hello <s>beautiful</s> world!
 This <i>test</i> <i><s>should</s> <b>be</b></i><b><i> difficult<s> to</s></i></b><s> parse</s>.
 From <b>bold <i>to </b>italics</i>
+
+This is an [[uncreated]] variable
+This is an [[un<b>captured]] and [[enclosed]] variable</b>
+This is a [[bro
+ken]] variable
 
 <b>Bold</b>
 <strong>Strong importance</strong>
@@ -91,7 +186,38 @@ From <b>bold <i>to </b>italics</i>
 <sup>Superscript</sup>
 <code>Inline code</code>
 <b>Test: <kbd>Keyboard input</kbd></b>
-<var>[[Variable]]</var></pre>
+<var>[[Variable]]</var>
+<var>[[Illegal]][[Variable]][[Reference]]</var>
+Another [[Illegal[[ variable test]] that ]] must ]]be[[ done.
+</pre> -->
+<pre id="editor" class="editor" contenteditable="true">Hello <s>beautiful</s> world!
+This <i>test <s>should</s><b> be<i> difficult<s> to</s></i></b></i><s> parse</s>.
+From <b>bold <i>to </i></b><i>italics</i>
+
+This is an <var>[[uncreated]]</var> variable
+This is an <var>[[uncaptured]]</var><b> and <var>[[enclosed]]</var> variable</b>
+This is a [[bro
+ken]] variable
+
+<b>Bold
+Strong importance
+</b><i>Italic
+Emphasis
+</i><u>Underline
+</u><s>Strikethrough
+Deleted text
+</s><ins>Inserted text
+</ins><mark>Highlighted text
+</mark><small>Small text
+</small><sub>Subscript
+</sub><sup>Superscript
+</sup><code>Inline code
+</code><b>Test: <kbd>Keyboard input
+</kbd></b><var>[[Variable]]</var>
+<var>[[Illegal]]</var><var>[[Variable]]</var><var>[[Reference]]</var>
+Another [[Illegal[[ variable test]] that ]] must ]]be[[ done.
+</pre>
+
   </div>
 </body>
 </html>
