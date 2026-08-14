@@ -1,4 +1,4 @@
-import { SelectionEditor } from 'client/editor/SelectionManager.ts';
+import { DocumentEditor } from 'client/editor/SelectionManager.ts';
 import { handle } from 'client/iframe.ts';
 import type { ReportBuilder } from 'client/report/ReportBuilder.ts';
 import type { ReportDomGroup } from 'client/report/types.ts';
@@ -153,6 +153,6 @@ export class LayoutManager {
     shell.appendChild(container);
 
     container.replaceChildren(...e$(`p.doc>(${description})`).childNodes);
-    new SelectionEditor(container);
+    new DocumentEditor(container);
   }
 }
