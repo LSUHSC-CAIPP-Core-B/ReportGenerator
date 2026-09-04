@@ -3,7 +3,7 @@
   "dependencies": {
     "express": "^5.2.1",
     "fuse.js": "^7.4.2",
-    "liquidjs": "^10.27.1",
+    "liquidjs": "^10.29.0",
     "mongoose": "^9.7.2",
     "node-json-db": "^2.6.0",
     "socket.io": "^4.8.3",
