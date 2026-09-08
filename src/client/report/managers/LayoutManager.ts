@@ -75,16 +75,16 @@ export class LayoutManager {
 
     switch (type) {
       case 'table':
-        this.createTableElement(element);
+        this.createTableElement(groupId, element);
         break;
       case 'image':
-        this.createImageElement(element);
+        this.createImageElement(groupId, element);
         break;
       case 'frame':
-        this.createFrameElement(element);
+        this.createFrameElement(groupId, element);
         break;
       case 'description':
-        this.createDescriptionElement(element);
+        this.createDescriptionElement(groupId, element);
         break;
       default:
         throw new Error(`Invalid element type: ${type satisfies never}`);
@@ -106,12 +106,14 @@ export class LayoutManager {
     ) as HTMLElement;
   }
 
-  private createTableElement({ identifier, data }: Required<TableElement>) {
+  private createTableElement(parent: string, { identifier, data }: Required<TableElement>) {
     const { type = 'csv', file, extras } = data ?? {};
     const project = this.report.getProjectPath();
     if (!file) return null;
 
     const shell = this.createElementShell({ details: 'Description', icon: 'text', identifier });
+    if (parent && this.GROUPS[parent]) this.GROUPS[parent].container.appendChild(shell);
+
     const table = e$(
       `table.b-table[aria-table="database/${project}/${file}/$"][aria-filetype=${type}]` +
         (extras?.index ? '[aria-row-index]' : '') +
@@ -124,35 +126,44 @@ export class LayoutManager {
     shell.appendChild(table);
   }
 
-  private createImageElement({ identifier, data }: Required<ImageElement>) {
+  private createImageElement(parent: string, { identifier, data }: Required<ImageElement>) {
     const { file } = data ?? {};
     const project = this.report.getProjectPath();
     if (!file) return null;
 
     const shell = this.createElementShell({ icon: 'image', identifier });
+    if (parent && this.GROUPS[parent]) this.GROUPS[parent].container.appendChild(shell);
+
     const image = e$(`img.b-image[src="database/${project}/${file}/$"]`) as HTMLImageElement;
     shell.appendChild(image);
   }
 
-  private createFrameElement({ identifier, data }: Required<FrameElement>) {
+  private createFrameElement(parent: string, { identifier, data }: Required<FrameElement>) {
     const { file } = data ?? {};
     const project = this.report.getProjectPath();
     if (!file) return null;
 
     const shell = this.createElementShell({ icon: 'pointer', identifier });
+    if (parent && this.GROUPS[parent]) this.GROUPS[parent].container.appendChild(shell);
+
     const frame = e$(`iframe.b-frame[src="database/${project}/${file}/$"]`) as HTMLIFrameElement;
     shell.appendChild(frame);
     handle(frame);
   }
 
-  private createDescriptionElement({ identifier, data }: Required<DescriptionElement>) {
+  private createDescriptionElement(
+    parent: string,
+    { identifier, data }: Required<DescriptionElement>,
+  ) {
     const { description } = data ?? {};
 
     const shell = this.createElementShell({ details: 'Description', icon: 'text', identifier });
+    if (parent && this.GROUPS[parent]) this.GROUPS[parent].container.appendChild(shell);
+
     const container = e$('div[contenteditable=true]') as HTMLDivElement;
     shell.appendChild(container);
 
-    container.replaceChildren(...e$(`p.doc>(${description})`).childNodes);
+    container.replaceChildren(...e$(description ?? '').childNodes);
     new DocumentEditor(container);
   }
 }
