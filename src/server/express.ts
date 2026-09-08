@@ -1,14 +1,11 @@
-import { createReadStream, existsSync, statSync } from 'node:fs';
-import { join as joinPath } from 'node:path';
 import { catchErrorTyped, getParam } from 'common/utilities.ts';
 import express, { type Request, type Response, static as staticFiles } from 'express';
-import { Types } from 'mongoose';
 import { env } from 'server/config/env.ts';
-import { ProjectModel } from 'server/database/schemas.ts';
 import liquid from 'server/liquidjs/index.ts';
 import projects from 'server/managers/projects.ts';
 import ts2jsRouter from 'server/middleware/ts2js.ts';
 import { UAParser } from 'ua-parser-js';
+import { databaseFileByHash, databaseFileByName } from './managers/database';
 
 const app = express();
 
@@ -41,80 +38,83 @@ app.get(['/', '/:identifier'], async (req: Request, res: Response) => {
   res.render('home.html', { os, project: project?.report, reports, timestamp: new Date() });
 });
 
-app.get(
-  ['/database/:path/:file/$', '/database/:path/:file/*relative'],
-  async (req: Request, res: Response) => {
-    const { path: pathArr, file: fileIdArr, relative: relatives } = req.params;
+app.get(['/database/:path/$', '/database/:path/*relative'], databaseFileByName);
+app.get(['/database/:path/:file/$', '/database/:path/:file/*relative'], databaseFileByHash);
 
-    const projectPath = getParam(pathArr);
-    const fileIdStr = getParam(fileIdArr);
+// app.get(
+//   ['/database/:path/:file/$', '/database/:path/:file/*relative'],
+//   async (req: Request, res: Response) => {
+//     const { path: pathArr, file: fileIdArr, relative: relatives } = req.params;
 
-    const project = (await projects.getProject(projectPath))!;
-    const projectIdStr = project.report.project ?? '';
+//     const projectPath = getParam(pathArr);
+//     const fileIdStr = getParam(fileIdArr);
 
-    if (!projectIdStr.match(/^[a-f\d]{24}$/gi))
-      return res.json({ message: 'Project ID needs to be a 24 character hex', status: 400 });
-    if (!fileIdStr.match(/^[a-f\d]{24}$/gi))
-      return res.json({ message: 'File ID needs to be a 24 character hex', status: 400 });
+//     const project = (await projects.getProject(projectPath))!;
+//     const projectIdStr = project.report.project ?? '';
 
-    const projectId = Types.ObjectId.createFromHexString(projectIdStr);
-    const fileId = Types.ObjectId.createFromHexString(fileIdStr);
+//     if (!projectIdStr.match(/^[a-f\d]{24}$/gi))
+//       return res.json({ message: 'Project ID needs to be a 24 character hex', status: 400 });
+//     if (!fileIdStr.match(/^[a-f\d]{24}$/gi))
+//       return res.json({ message: 'File ID needs to be a 24 character hex', status: 400 });
 
-    const additional =
-      relatives != null ? (Array.isArray(relatives) ? relatives : [relatives]) : [];
+//     const projectId = Types.ObjectId.createFromHexString(projectIdStr);
+//     const fileId = Types.ObjectId.createFromHexString(fileIdStr);
 
-    if (additional.length > 0) additional.unshift('..');
+//     const additional =
+//       relatives != null ? (Array.isArray(relatives) ? relatives : [relatives]) : [];
 
-    const lookup = await ProjectModel.aggregate(
-      [
-        { $match: { _id: projectId } },
-        { $unwind: '$files' },
-        { $match: { files: fileId } },
-        {
-          $lookup: {
-            as: 'file',
-            foreignField: '_id',
-            from: 'files',
-            localField: 'files',
-          },
-        },
-        { $unwind: '$file' },
-        { $limit: 1 },
-      ],
-      { maxTimeMS: 3000 },
-    );
+//     if (additional.length > 0) additional.unshift('..');
 
-    const path = joinPath(lookup[0].file.path, ...additional);
-    const fileLookup = joinPath(lookup[0].absolutePath, path);
+//     const lookup = await ProjectModel.aggregate(
+//       [
+//         { $match: { _id: projectId } },
+//         { $unwind: '$files' },
+//         { $match: { files: fileId } },
+//         {
+//           $lookup: {
+//             as: 'file',
+//             foreignField: '_id',
+//             from: 'files',
+//             localField: 'files',
+//           },
+//         },
+//         { $unwind: '$file' },
+//         { $limit: 1 },
+//       ],
+//       { maxTimeMS: 3000 },
+//     );
 
-    if (fileLookup.endsWith('glimma.min.css')) {
-      const injectedCSS = joinPath(env.ASSETS_DIRECTORY, 'css', 'iframe.css');
+//     const path = joinPath(lookup[0].file.path, ...additional);
+//     const fileLookup = joinPath(lookup[0].absolutePath, path);
 
-      const status = existsSync(fileLookup) ? 200 : 404;
-      const statSize = statSync(fileLookup).size + statSync(injectedCSS).size;
+//     if (fileLookup.endsWith('glimma.min.css')) {
+//       const injectedCSS = joinPath(env.ASSETS_DIRECTORY, 'css', 'iframe.css');
 
-      res.writeHead(status, {
-        'Content-Length': statSize,
-        'Content-Type': 'text/css',
-      });
+//       const status = existsSync(fileLookup) ? 200 : 404;
+//       const statSize = statSync(fileLookup).size + statSync(injectedCSS).size;
 
-      // Create first read stream
-      const stream1 = createReadStream(fileLookup);
+//       res.writeHead(status, {
+//         'Content-Length': statSize,
+//         'Content-Type': 'text/css',
+//       });
 
-      // Pipe first stream, do not end response yet
-      stream1.pipe(res, { end: false });
+//       // Create first read stream
+//       const stream1 = createReadStream(fileLookup);
 
-      // When first stream ends, start second
-      stream1.on('end', () => {
-        const stream2 = createReadStream(injectedCSS);
-        // Pipe second stream and end response
-        stream2.pipe(res);
-      });
+//       // Pipe first stream, do not end response yet
+//       stream1.pipe(res, { end: false });
 
-      // Handle errors
-      stream1.on('error', (err) => res.status(500).send(err.message));
-    } else res.sendFile(fileLookup);
-  },
-);
+//       // When first stream ends, start second
+//       stream1.on('end', () => {
+//         const stream2 = createReadStream(injectedCSS);
+//         // Pipe second stream and end response
+//         stream2.pipe(res);
+//       });
+
+//       // Handle errors
+//       stream1.on('error', (err) => res.status(500).send(err.message));
+//     } else res.sendFile(fileLookup);
+//   },
+// );
 
 export default app;
