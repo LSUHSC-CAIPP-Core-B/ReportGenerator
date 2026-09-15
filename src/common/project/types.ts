@@ -155,6 +155,7 @@ export type FrameElement = GenericElement & {
   type: 'frame';
   data?: {
     file?: string;
+    hash?: string;
   };
 };
 
@@ -163,6 +164,7 @@ export type ImageElement = GenericElement & {
   data?: {
     description?: string;
     file?: string;
+    hash?: string;
   };
 };
 
@@ -171,6 +173,7 @@ export type TableElement = GenericElement & {
   data?: {
     type?: string;
     file?: string;
+    hash?: string;
     extras?: Record<string, any>;
   };
 };

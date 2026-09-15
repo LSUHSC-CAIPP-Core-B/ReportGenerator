@@ -36,7 +36,7 @@ export class TableHandler {
     const ariaTableAttr = element.attributes.getNamedItem('aria-table');
     if (ariaTableAttr == null) return;
 
-    const url = new URL(ariaTableAttr.nodeValue ?? '', element.baseURI);
+    const url = new URL(ariaTableAttr.nodeValue ?? '', window.location.origin);
     const ariaFileTypeAttr = element.attributes.getNamedItem('aria-filetype');
     const fileType = ariaFileTypeAttr?.nodeValue || 'csv';
 
@@ -124,13 +124,13 @@ export class TableHandler {
     return this;
   }
 
-  private createEntry(content: string | number): HTMLElement {
+  private createEntry(content: string | number | null): HTMLElement {
     const entry = document.createElement('span');
     entry.classList.add('table-entry');
 
     const holder = document.createElement('p');
     holder.classList.add('entry-text');
-    holder.innerText = content.toString();
+    holder.innerText = (content ?? '').toString();
 
     entry.appendChild(holder);
     return entry;

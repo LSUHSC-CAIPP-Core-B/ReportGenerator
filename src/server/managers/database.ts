@@ -58,21 +58,14 @@ async function serveDatabaseFile(
 }
 
 /**
- * GET /database/:path/:relative?
+ * GET /database/:path/:name/:relative?
+ *
+ * Looks up the file by its name.
  */
 export async function databaseFileByName(req: Request, res: Response, next: NextFunction) {
-  const { path: pathArr, relative: relatives } = req.params;
+  const { path: pathArr, name: nameArr, relative: relatives } = req.params;
   const projectPath = getParam(pathArr);
-  const fileName = req.query.name;
-
-  if (getParam(relatives)?.match(/^[\da-f]{24}$/gi)) {
-    next();
-    return;
-  }
-
-  if (typeof fileName !== 'string' || !fileName) {
-    return res.status(400).json({ message: 'Query parameter is required', status: 400 });
-  }
+  const fileName = getParam(nameArr);
 
   const project = (await projects.getProject(projectPath))!;
   const projectIdStr = project.report.project ?? '';
@@ -84,7 +77,6 @@ export async function databaseFileByName(req: Request, res: Response, next: Next
 
   const projectId = Types.ObjectId.createFromHexString(projectIdStr);
   const escapedName = fileName.replaceAll(/[.+?^${}()|[\]\\]/g, '\\$&').replaceAll(/\*/g, '.*');
-  console.log(escapedName);
 
   const lookup = await ProjectModel.aggregate(
     [
@@ -106,12 +98,12 @@ export async function databaseFileByName(req: Request, res: Response, next: Next
 }
 
 /**
- * GET /database/:path/:file/:relative?
+ * GET /database/:path/:hash/:relative?
  *
  * Looks up the file by its hash/ObjectId.
  */
 export async function databaseFileByHash(req: Request, res: Response) {
-  const { path: pathArr, file: fileIdArr, relative: relatives } = req.params;
+  const { path: pathArr, hash: fileIdArr, relative: relatives } = req.params;
 
   const projectPath = getParam(pathArr);
   const fileIdStr = getParam(fileIdArr);

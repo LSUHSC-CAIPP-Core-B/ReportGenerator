@@ -1,0 +1,11 @@
+{%- element "img", self %}
+  {%- attribute name: "class", value: "b-image" -%}
+  {%- attribute name: "src", value: url -%}
+{%- endelement %}
+
+{%- if element.data.description != null %}
+{%- element "p" %}
+  {%- attribute name: "class", value: "image-desc" -%}
+  {{ element.data.description }}
+{%- endelement -%}
+{%- endif %}

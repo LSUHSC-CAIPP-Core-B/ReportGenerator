@@ -107,15 +107,17 @@ export class LayoutManager {
   }
 
   private createTableElement(parent: string, { identifier, data }: Required<TableElement>) {
-    const { type = 'csv', file, extras } = data ?? {};
+    const { type = 'csv', file, hash, extras } = data ?? {};
     const project = this.report.getProjectPath();
-    if (!file) return null;
+    if (!file && !hash) return null;
 
     const shell = this.createElementShell({ details: 'Description', icon: 'text', identifier });
     if (parent && this.GROUPS[parent]) this.GROUPS[parent].container.appendChild(shell);
 
+    const encoded = encodeURIComponent((hash ?? file)!);
+    const lookup = `/database/${hash ? 'hash' : 'file'}/${project}/${encoded}/@`;
     const table = e$(
-      `table.b-table[aria-table="database/${project}/${file}/$"][aria-filetype=${type}]` +
+      `table.b-table[aria-table="${lookup}"][aria-filetype=${type}]` +
         (extras?.index ? '[aria-row-index]' : '') +
         (Array.isArray(extras?.column_order)
           ? `[aria-column-order=${extras.column_order.join(',')}]`
@@ -127,26 +129,31 @@ export class LayoutManager {
   }
 
   private createImageElement(parent: string, { identifier, data }: Required<ImageElement>) {
-    const { file } = data ?? {};
+    const { file, hash } = data ?? {};
     const project = this.report.getProjectPath();
-    if (!file) return null;
+    if (!file && !hash) return null;
 
     const shell = this.createElementShell({ icon: 'image', identifier });
     if (parent && this.GROUPS[parent]) this.GROUPS[parent].container.appendChild(shell);
 
-    const image = e$(`img.b-image[src="database/${project}/${file}/$"]`) as HTMLImageElement;
+    const encoded = encodeURIComponent((hash ?? file)!);
+    const lookup = `/database/${hash ? 'hash' : 'file'}/${project}/${encoded}/@`;
+    const image = e$(`img.b-image[src="${lookup}"]`) as HTMLImageElement;
+    image.alt = `Unable to load image: ${lookup}`;
     shell.appendChild(image);
   }
 
   private createFrameElement(parent: string, { identifier, data }: Required<FrameElement>) {
-    const { file } = data ?? {};
+    const { file, hash } = data ?? {};
     const project = this.report.getProjectPath();
-    if (!file) return null;
+    if (!file && !hash) return null;
 
     const shell = this.createElementShell({ icon: 'pointer', identifier });
     if (parent && this.GROUPS[parent]) this.GROUPS[parent].container.appendChild(shell);
 
-    const frame = e$(`iframe.b-frame[src="database/${project}/${file}/$"]`) as HTMLIFrameElement;
+    const encoded = encodeURIComponent((hash ?? file)!);
+    const lookup = `/database/${hash ? 'hash' : 'file'}/${project}/${encoded}/@`;
+    const frame = e$(`iframe.b-frame[src="${lookup}"]`) as HTMLIFrameElement;
     shell.appendChild(frame);
     handle(frame);
   }
