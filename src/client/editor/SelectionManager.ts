@@ -667,11 +667,11 @@ export class DocumentEditor {
 
   private getEmmet(parent: Node, operation?: StyleOperation) {
     const runs = this.flatten(parent, operation);
-    console.log(runs);
+    // console.log(runs);
     const merged = this.mergeRuns(runs);
-    console.log(merged);
+    // console.log(merged);
     const tree = this.buildTree(merged);
-    console.log(tree);
+    // console.log(tree);
 
     return this.toEmmetTree(tree);
   }

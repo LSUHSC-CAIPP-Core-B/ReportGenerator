@@ -25,6 +25,9 @@
     }
   },
   "dependencies": {
+    "@types/archiver": "^8.0.0",
+    "archiver": "^8.0.0",
+    "cheerio": "^1.2.0",
     "commitlint": "^21.2.1",
     "cz-conventional-changelog": "^3.3.0",
     "emmet": "^2.4.11",

@@ -1,3 +1,23 @@
 {
-  "deno.enable": false
+  "[html]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "deno.enable": true,
+  "editor.codeActionsOnSave": {
+    "source.action.useSortedKeys.biome": "explicit",
+    "source.fixAll.biome": "explicit"
+  },
+  "editor.formatOnSave": true,
+  "editor.indentSize": "tabSize",
+  "editor.tabSize": 2,
+  "files.autoSave": "onFocusChange"
 }

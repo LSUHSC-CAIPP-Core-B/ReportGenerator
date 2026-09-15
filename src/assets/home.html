@@ -21,7 +21,7 @@
   <title>{{ title | titlecase }}</title>
 
   <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css" />
-
+  {%- if trybuild != true -%}
   <script type="importmap">
   {
     "imports": {
@@ -30,10 +30,9 @@
     }
   }
   </script>
-  
-  {% if environment == 'development' -%}
-  {% element "script" -%}
-    const macos = {{ os.name contains "macOS" | json }};
+
+  {%- element "script" -%}
+  const macos = {{ os.name contains "macOS" | json }};
   {%- endelement %}
   <script src="/client/development.js" type="module" defer></script>
   <link rel="stylesheet" href="/assets/css/development.css">
@@ -41,8 +40,9 @@
 </head>
 
 <body>
-  {% include "development.html", if environment == 'development' %}
-
+  {%- if trybuild != true -%}
+  {%- include "development.html" %}
+  {%- endif %}
   <div class="b-report">
     <navbar class="b-navbar">
       <span class="navigation">
@@ -59,14 +59,65 @@
 
     <div class="content">
       {%- if project != undefined %}
-      {% comment -%} <!-- {% endcomment -%}
-      {% comment -%} Why this? I don't like syntax errors... So it's a quick fix {% endcomment -%}
-      <script type="module">
-        import { ReportBuilder } from '/client/report/ReportBuilder';
-        window.report = new ReportBuilder({{ project | json }}, document.querySelector('body > div.b-report > div.content'));
-        document.querySelector('body > div.b-report > div.content > script[type=module]').remove();
-      </script>
-      {%- comment %} --> {% endcomment %}
+        {% if trybuild != true -%}
+        {% comment -%} <!-- {% endcomment -%}
+        {% comment -%} Why this? I don't like syntax errors... So it's a quick fix {% endcomment -%}
+        <script type="module">
+          import { ReportBuilder } from '/client/report/ReportBuilder';
+          window.report = new ReportBuilder({{ project | json }}, document.querySelector('body > div.b-report > div.content'));
+          document.querySelector('body > div.b-report > div.content > script[type=module]').remove();
+        </script>
+        {%- comment %} --> {% endcomment %}
+      {%- else -%}
+      <div class="b-menu">
+        <div class="menu-title">Table of Contents</div>
+        <div class="menu-container">
+          {%- for group in project.groups %}
+            {%- if group.parentId %}
+          <div class="menu-entry indent" >{% comment -%}</div>{% endcomment -%}
+            {%- else %}
+            <div class="menu-entry indent" >
+            {%- endif %}
+            <p class="desc">{{group.title}}</p>
+          </div>
+          {%- endfor %}
+        </div>
+      </div>
+      <div class="b-content">
+        {%- for group in project.groups %}
+        <div class="b-container" aria-identifier="{{ group.identifier }}">
+          {%- for element in group.elements %}
+          <div class="b-element">
+            {% if element.data.hash != blank -%}
+            {%- assign encoded = element.data.hash | url_encode -%}
+            {%- assign url = "database/hash/" | append: project.path | append: "/" | append: encoded | append: "/@" -%}
+            {%- elsif element.data.file != blank -%}
+            {%- assign encoded = element.data.file | url_encode -%}
+            {%- assign url = "database/file/" | append: project.path | append: "/" | append: encoded | append: "/@" -%}
+            {%- endif %}
+
+            {%- case element.type %}
+            {%- when "description" %}
+            {% include "partial/description.html" %}
+
+            {%- when "frame" %}
+            {% include "partial/frame.html" %}
+            
+            {%- when "image" %}
+            {% include "partial/image.html" %}
+            
+            {%- when "table" %}
+            {% include "partial/table.html" %}
+            
+            {%- else %}
+            <p>{{ element | json }}</p>
+            {%- endcase %}
+          </div>
+          {%- endfor %}
+        </div>
+        {%- endfor %}
+      </div>
+      {%- endif %}
       {%- else -%}
       <div class="b-projects">
         <p class="projects-title">Saved Projects</p>
