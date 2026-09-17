@@ -1,3 +1,4 @@
+import expand from 'emmet';
 import {
   type Context,
   type Emitter,
@@ -14,6 +15,7 @@ export default function (this: Liquid, _L: typeof Liquid) {
 
   this.registerTag('attribute', attributeTagOptions);
   this.registerTag('element', elementTagOptions);
+  this.registerTag('emmet', parseEmmetTagOptions);
 }
 
 const _componentTagOptions: TagImplOptions = {
@@ -239,3 +241,13 @@ function resolveAttribute(
   else if (exists && !genericSet) attributes[name] = `${attributes[name]} ${value}`;
   else attributes[name] = value;
 }
+
+const parseEmmetTagOptions: TagImplOptions = {
+  parse: function (this: Tag & TagImplOptions, tagToken: TagToken, remainTokens: TopLevelToken[]) {
+    this.value = new Value(tagToken.args, this.liquid);
+  },
+  render: function* (ctx: Context) {
+    const str: string = yield this.value.value(ctx);
+    return expand(str);
+  },
+};

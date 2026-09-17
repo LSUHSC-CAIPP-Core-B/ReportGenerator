@@ -1,10 +1,5 @@
 import { LayoutManager } from 'client/report/managers/LayoutManager.ts';
-import type {
-  ProjectAction,
-  ProjectActions$Server,
-  ProjectActionType,
-  ProjectReport,
-} from 'common/project/types.ts';
+import type { ProjectActions$Server, ProjectReport } from 'common/project/types.ts';
 
 type ReportBuilderEvents = {
   [Type in ProjectActions$Server['type']]: {

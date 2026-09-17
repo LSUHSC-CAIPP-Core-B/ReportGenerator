@@ -7,6 +7,7 @@ type Styles = {
   underlined?: boolean;
   'background-color'?: string | null;
   color?: string | null;
+  'font-size'?: string | null;
 };
 
 type TextRun = {
@@ -44,6 +45,9 @@ const TAG_STYLE_OVERRIDES: Record<string, Styles> = {
   DEL: { strikethrough: true },
   DIV: {},
   EM: { italic: true },
+  H1: { 'font-size': '2em' },
+  H2: { 'font-size': '1.5em' },
+  H3: { 'font-size': '1.17em' },
   I: { italic: true },
   MARK: { 'background-color': 'yellow' },
   S: { strikethrough: true },
@@ -63,11 +67,20 @@ const FG_COLOR_FN: StyleConversionFn<'color'> = (value) => `span[style="color:${
 
 const BG_COLOR_FN: StyleConversionFn<'background-color'> = (value) =>
   value === 'yellow' ? 'mark' : `span[style="background-color:${value};"]`;
+const SIZING_FN: StyleConversionFn<'font-size'> = (value) =>
+  value === '2em'
+    ? 'h1'
+    : value === '1.5em'
+      ? 'h2'
+      : value === '1.17em'
+        ? 'h3'
+        : `span[style="font-size:${value};"]`;
 
 // biome-ignore assist/source/useSortedKeys: keep priority in order
 const STYLE_OPTIONS: StyleOptions = {
   color: [0, true, FG_COLOR_FN],
   'background-color': [1, false, BG_COLOR_FN],
+  'font-size': [1, false, SIZING_FN],
   bold: [2, true, 'b'],
   italic: [3, true, 'i'],
   strikethrough: [4, false, 's'],

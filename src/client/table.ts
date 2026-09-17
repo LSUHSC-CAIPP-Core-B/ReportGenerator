@@ -108,7 +108,7 @@ export class TableHandler {
 
       row.forEach((data, j) => {
         if (columns[j] == null) rowElement.appendChild(this.createEntry(data));
-        else columns[j].innerText = data.toString();
+        else columns[j].innerText = (data ?? '').toString();
       });
     });
 

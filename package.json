@@ -54,6 +54,7 @@
     "nodemon": "^3.1.14",
     "ts-loader": "^9.6.1",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.23.13",
     "typescript": "^6.0.3",
     "webpack": "^5.107.2",
     "webpack-cli": "^7.0.3",
@@ -63,7 +64,7 @@
   "main": "index.js",
   "name": "report-generator",
   "nodemonConfig": {
-    "exec": "npx ts-node -r dotenv/config ./src/server/app.ts",
+    "exec": "npx tsx -r dotenv/config ./src/server/app.ts",
     "ext": "ts,json",
     "ignore": [
       "src/**/*.spec.ts",

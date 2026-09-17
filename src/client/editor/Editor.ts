@@ -1,16 +1,9 @@
-import {
-  createElementTags,
-  groupSimilarElementTags,
-  isElement,
-  isVariable,
-} from 'client/editor/DomTags.ts';
+import { createElementTags, groupSimilarElementTags, isElement } from 'client/editor/DomTags.ts';
 import {
   applyInstructions,
   createInstructions,
   joinAdjacentNodes,
 } from 'client/editor/Instructions.ts';
-import { tags } from 'liquidjs';
-import { createToJSONSchemaMethod } from 'zod/v4/core';
 
 /**
  * Main editor wrapper.
@@ -268,8 +261,11 @@ export class DocumentEditor {
   private refreshDom(element: HTMLElement) {
     const parent = element.parentElement;
     const tags = createElementTags(element);
+    console.log(tags);
     const groups = groupSimilarElementTags(tags);
+    console.log(groups);
     const instructions = createInstructions(groups);
+    console.log(instructions);
     applyInstructions(instructions);
 
     const target = element.parentElement ? element : parent;

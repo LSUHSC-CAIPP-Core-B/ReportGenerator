@@ -74,9 +74,9 @@
         <div class="menu-container">
           {%- for group in project.groups %}
             {%- if group.parentId %}
-          <div class="menu-entry indent" >{% comment -%}</div>{% endcomment -%}
+          <div class="menu-entry indent" style="--menu-indent: {{ group.depth }};" >{% comment -%}</div>{% endcomment -%}
             {%- else %}
-            <div class="menu-entry indent" >
+          <div class="menu-entry" >
             {%- endif %}
             <p class="desc">{{group.title}}</p>
           </div>
