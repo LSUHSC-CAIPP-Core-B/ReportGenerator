@@ -6,7 +6,7 @@ import projects from 'server/managers/projects.ts';
 import ts2jsRouter from 'server/middleware/ts2js.ts';
 import { UAParser } from 'ua-parser-js';
 import { databaseFileByHash, databaseFileByName } from './managers/database.ts';
-import { createArchive } from './managers/mirror.ts';
+import { createArchive } from './managers/mirror/index.ts';
 
 const app = express();
 
