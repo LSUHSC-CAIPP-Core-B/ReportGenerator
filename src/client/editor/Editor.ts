@@ -145,7 +145,7 @@ export class DocumentEditor {
       start,
     };
 
-    console.log(this.selection);
+    // console.log(this.selection);
   }
 
   private loadSelectionRelativePos(root: Node) {
@@ -261,11 +261,11 @@ export class DocumentEditor {
   private refreshDom(element: HTMLElement) {
     const parent = element.parentElement;
     const tags = createElementTags(element);
-    console.log(tags);
+    // console.log(tags);
     const groups = groupSimilarElementTags(tags);
-    console.log(groups);
+    // console.log(groups);
     const instructions = createInstructions(groups);
-    console.log(instructions);
+    // console.log(instructions);
     applyInstructions(instructions);
 
     const target = element.parentElement ? element : parent;

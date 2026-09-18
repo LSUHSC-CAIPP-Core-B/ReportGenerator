@@ -88,6 +88,9 @@ export type ProjectActions$Server = ProjectActions$Resolve<'server'>;
 
 export type ProjectAction =
   | {
+      type: 'project:template';
+    }
+  | {
       type: 'group:create';
       options: ProjectGroupDef;
     }
@@ -202,16 +205,17 @@ export type ProjectReport = {
   groups?: ProjectGroup[];
   project?: string;
   path?: string;
+  template?: boolean;
 };
 
-export type ProjectDef = Partial<Pick<ProjectReport, 'title' | 'path' | 'project'>>;
+export type ProjectDef = Partial<Pick<ProjectReport, 'title' | 'path' | 'project' | 'template'>>;
 
 export type ProjectGroupDef = Required<Pick<ProjectGroup, 'title'>> &
   Partial<Pick<ProjectGroup, 'parentId'>> & { elements?: ProjectElementDef[] };
 
 export type ProjectElementDef = Omit<ProjectElement, 'identifier'>;
 
-export type ProjectInfo = Required<Omit<ProjectReport, 'project' | 'groups'>> &
+export type ProjectInfo = Required<Omit<ProjectReport, 'project' | 'groups' | 'template'>> &
   Pick<ProjectReport, 'project'>;
 
 export class ProjectError extends Error {

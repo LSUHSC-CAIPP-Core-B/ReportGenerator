@@ -110,6 +110,32 @@ function addFileToTree(root: FolderNode, file: DatabaseProjectTreeFile) {
   });
 }
 
+function collectDescendantFiles(
+  node: FolderNode,
+  path: string[] = [],
+): Array<{
+  file: DatabaseProjectTreeFile;
+  path: string[];
+}> {
+  const files: Array<{
+    file: DatabaseProjectTreeFile;
+    path: string[];
+  }> = [];
+
+  for (const file of node.files) {
+    files.push({
+      file,
+      path,
+    });
+  }
+
+  for (const [name, folder] of node.folders) {
+    files.push(...collectDescendantFiles(folder, [...path, name]));
+  }
+
+  return files;
+}
+
 function buildFolderCommand(
   node: FolderNode,
   options: {
@@ -118,31 +144,59 @@ function buildFolderCommand(
     icon?: string;
     visibility?: CommandActionVisibility;
     callback?: (value: unknown) => void;
+    path?: string[];
   },
 ): CommandType {
   const children: CommandType[] = [];
 
-  for (const [name, folder] of node.folders) {
+  // Keep the normal folder hierarchy for navigation.
+  for (const [name, folder] of [...node.folders.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     children.push(
       buildFolderCommand(folder, {
         callback: options.callback,
         description: options.description,
         icon: 'folder',
         label: name,
-        visibility: 'searchable',
+        path: [...(options.path ?? []), name],
+        visibility: 'shown',
       }),
     );
   }
 
-  for (const file of node.files.sort((a, b) => a.name.localeCompare(b.name))) {
+  // Direct files in this folder.
+  for (const file of [...node.files].sort((a, b) => a.name.localeCompare(b.name))) {
     children.push({
-      description: node === undefined ? '' : options.description,
+      callback: options.callback,
+      description: options.description,
       label: file.name,
       truncate: 'start',
       value: {
         id: file.id,
         type: file.type,
       },
+      visibility: 'shown',
+    });
+  }
+
+  // Also expose ALL descendant files to the current folder's search.
+  //
+  // These are searchable but aren't additional visible navigation items.
+  const descendantFiles = collectDescendantFiles(node);
+
+  for (const { file, path } of descendantFiles) {
+    // Don't duplicate files that were already added above.
+    if (path.length === 0) continue;
+
+    children.push({
+      callback: options.callback,
+      description: path.join(' / '),
+      label: file.name,
+      truncate: 'start',
+      value: {
+        id: file.id,
+        type: file.type,
+      },
+      visibility: 'searchable',
     });
   }
 
@@ -155,6 +209,7 @@ function buildFolderCommand(
     visibility: options.visibility ?? 'shown',
   };
 }
+
 document.addEventListener('DOMContentLoaded', () => {
   addReportActions((window as any).report);
   addGeneralActions();
@@ -167,6 +222,7 @@ async function addReportActions(REPORT: ReportBuilder) {
   // const groupManager = REPORT.getGroupManager();
   // const insertManager = REPORT.getPendingInsertManager();
   const files = await rpc.db.files(REPORT.getProjectPath());
+
   const lookup = new Map<string, FileGroupKey>();
 
   for (const [key, group] of Object.entries(FILE_GROUPS)) {
@@ -202,7 +258,9 @@ async function addReportActions(REPORT: ReportBuilder) {
           type: string;
         };
 
-        // insertManager.beginPendingElement({
+        REPORT.getLayoutManager();
+
+        // REPORT..beginPendingElement({
         //   data: {
         //     file: file.id,
         //     type: file.type,
