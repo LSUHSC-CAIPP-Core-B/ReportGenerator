@@ -4,6 +4,8 @@ import type { RPC } from 'common/rpc/types.ts';
 import { server as $appServer } from 'server/app.ts';
 import projects from 'server/managers/projects.ts';
 import { Server, type Socket } from 'socket.io';
+import { getFilesFromProject } from './database/controller.ts';
+import { ProjectModel } from './database/schemas.ts';
 
 /**
  * Client Connection
@@ -47,7 +49,7 @@ export class RPCConnection {
 const HANDLERS: RPC = {
   db: {
     async files(projectIdStr) {
-      return [];
+      return await getFilesFromProject(projectIdStr);
     },
     async projects() {
       return [];

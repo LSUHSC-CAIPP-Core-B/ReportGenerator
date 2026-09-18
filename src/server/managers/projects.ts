@@ -27,6 +27,14 @@ interface ProjectManager {
   patch(data: Partial<ProjectReport>): ProjectManager;
   replace(self: ProjectReport): ProjectManager;
 
+  /**
+   * Converts this project into a template.
+   *
+   * Hashed values are removed because templates are not allowed
+   * to contain project-specific hashed data.
+   */
+  makeTemplate(): ProjectManager;
+
   apply(action: ProjectAction): ProjectManager;
 }
 
@@ -84,9 +92,11 @@ class ProjectDatabase {
     );
 
     if (error) return undefined;
+
     Object.assign(report, { path });
 
     await this.database.push(`/${path}/last_opened`, new Date().toISOString(), true);
+
     return getProjectManager(report, this.database);
   }
 
@@ -96,41 +106,154 @@ class ProjectDatabase {
     const projects: ProjectInfo[] = Object.entries(data)
       .map(([path, project]) => [path, project as ProjectReport] as const)
       .filter(([, project]) => typeof project === 'object')
-      .map(([path, { title, last_opened }]) => ({ last_opened, path, title }) as ProjectInfo);
+      .map(
+        ([path, { title, last_opened }]) =>
+          ({
+            last_opened,
+            path,
+            title,
+          }) as ProjectInfo,
+      );
 
     return projects ?? [];
   }
 
+  /**
+   * Creates a new, empty project.
+   *
+   * Set `template: true` to create a template directly.
+   */
   async createProject({
     project,
     title = project,
     path = project?.toLowerCase(),
+    template = false,
   }: ProjectDef): Promise<ProjectInfo> {
-    // if (typeof identifier !== 'string') {
-    //   throw new ProjectError('Project id is not a string');
-    // } else if (!identifier?.trim()) {
-    //   throw new ProjectError('Project id is required');
-    // }
+    if (!title || typeof title !== 'string') {
+      throw new ProjectError('Project title is required');
+    }
 
-    if (!title || typeof title !== 'string') throw new ProjectError('Project title is required');
-    if (!path || typeof path !== 'string') throw new ProjectError('Project path is required');
+    if (!path || typeof path !== 'string') {
+      throw new ProjectError('Project path is required');
+    }
 
     const exists = await this.database.exists(`/${path}`);
-    if (exists) throw new ProjectError(`Project path already exists: ${path}`);
 
-    const report = {
+    if (exists) {
+      throw new ProjectError(`Project path already exists: ${path}`);
+    }
+
+    const report: ProjectReport = {
       last_opened: new Date().toISOString(),
       path,
       project,
+      template,
       title,
-    } satisfies ProjectReport;
+    };
+
+    /*
+     * Templates are never allowed to contain hashed values.
+     *
+     * This is mostly relevant when createProject() is eventually
+     * extended to accept project contents.
+     */
+    if (template) {
+      stripHashedValues(report);
+    }
 
     await this.database.push(`/${path}`, report, true);
-    return { last_opened: report.last_opened, path, title };
+
+    return {
+      last_opened: report.last_opened,
+      path,
+      title,
+    };
+  }
+
+  /**
+   * Creates a normal project from an existing template.
+   *
+   * The template is copied and receives completely new group and
+   * element identifiers, so the new project is independent of the
+   * original template.
+   */
+  async createProjectFromTemplate({
+    templatePath,
+    project,
+    title = project,
+    path = project?.toLowerCase(),
+  }: {
+    templatePath: string;
+    project: string;
+    title?: string;
+    path?: string;
+  }): Promise<ProjectInfo> {
+    if (!templatePath || typeof templatePath !== 'string') {
+      throw new ProjectError('Template path is required');
+    } else if (!project || typeof project !== 'string') {
+      throw new ProjectError('Project identifier is required');
+    } else if (!title || typeof title !== 'string') {
+      throw new ProjectError('Project title is required');
+    } else if (!path || typeof path !== 'string') {
+      throw new ProjectError('Project path is required');
+    }
+
+    const template = await this.getProject(templatePath);
+
+    if (!template) {
+      throw new ProjectError(`Template not found: ${templatePath}`);
+    } else if (!template.report.template) {
+      throw new ProjectError(`Project is not a template: ${templatePath}`);
+    }
+
+    const exists = await this.database.exists(`/${path}`);
+
+    if (exists) {
+      throw new ProjectError(`Project path already exists: ${path}`);
+    }
+
+    /*
+     * Clone the template.
+     *
+     * structuredClone() is important here because modifying the new
+     * project must never mutate the template's in-memory report.
+     */
+    const report = structuredClone(template.report);
+
+    report.path = path;
+    report.project = project;
+    report.title = title;
+    report.last_opened = new Date().toISOString();
+
+    /*
+     * The result of applying a template is always a normal project.
+     */
+    report.template = false;
+
+    /*
+     * A template should never contain hashed values, but strip them
+     * here as an additional safety measure in case an older/corrupt
+     * template does.
+     */
+    stripHashedValues(report);
+
+    /*
+     * The project must not share identifiers with the template.
+     */
+    regenerateIdentifiers(report);
+
+    await this.database.push(`/${path}`, report, true);
+
+    return {
+      last_opened: report.last_opened,
+      path,
+      title,
+    };
   }
 }
 
 const handler = new ProjectDatabase();
+
 export default handler;
 
 function recomputeDepth(groups: ProjectGroup[]) {
@@ -143,6 +266,7 @@ function recomputeDepth(groups: ProjectGroup[]) {
     while (current.parentId) {
       const parent = map.get(current.parentId);
       if (!parent) break;
+
       depth++;
       current = parent;
     }
@@ -155,16 +279,95 @@ function recomputeDepth(groups: ProjectGroup[]) {
   }
 }
 
+/**
+ * Recursively removes every `hashed` property from an object.
+ *
+ * This deliberately walks the entire project rather than only
+ * ProjectElement objects so nested hashed values cannot accidentally
+ * make it into a template.
+ */
+function stripHashedValues(value: unknown): void {
+  if (!value || typeof value !== 'object') return;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      stripHashedValues(item);
+    }
+
+    return;
+  }
+
+  const object = value as Record<string, unknown>;
+  delete object.hashed;
+
+  for (const child of Object.values(object)) {
+    stripHashedValues(child);
+  }
+}
+
+/**
+ * Generates new identifiers for every group and element in a project.
+ *
+ * Parent IDs are updated to point to the newly-created group IDs.
+ */
+function regenerateIdentifiers(report: ProjectReport): void {
+  const groups = report.groups ?? [];
+  const groupIdMap = new Map<string, string>();
+
+  /*
+   * Generate all new group IDs first so parent references can be
+   * resolved in a second pass.
+   */
+  for (const group of groups) {
+    const oldId = group.identifier;
+    const newId = createIdentifier();
+
+    groupIdMap.set(oldId, newId);
+    group.identifier = newId;
+  }
+
+  /*
+   * Update parent references to the new group identifiers.
+   */
+  for (const group of groups) {
+    if (group.parentId) {
+      group.parentId = groupIdMap.get(group.parentId);
+    }
+  }
+
+  /*
+   * Generate completely new element identifiers.
+   */
+  for (const group of groups) {
+    for (const element of group.elements ?? []) {
+      element.identifier = createIdentifier();
+    }
+  }
+
+  /*
+   * Depth is derived from the hierarchy, so recalculate it after
+   * changing the group relationships.
+   */
+  recomputeDepth(groups);
+}
+
 function getProjectManager(report: ProjectReport, database: JsonDB): ProjectManager {
   const MANAGER: Pick<ProjectManager, 'report' | 'groups' | 'database'> = {
     database,
     report,
   } as ProjectManager;
-  Object.assign(MANAGER, { groups: getGroupManager(MANAGER as ProjectManager, report) });
+
+  Object.assign(MANAGER, {
+    groups: getGroupManager(MANAGER as ProjectManager, report),
+  });
 
   return Object.assign(MANAGER, {
     apply(this: ProjectManager, action) {
       switch (action.type) {
+        case 'project:template':
+          this.makeTemplate();
+          break;
+
         case 'group:create':
           this.groups.create(action.options);
           break;
@@ -197,6 +400,14 @@ function getProjectManager(report: ProjectReport, database: JsonDB): ProjectMana
           throw new Error(`Invalid action type: ${action satisfies never}`);
       }
 
+      /*
+       * If a project is a template, make sure an action cannot
+       * introduce hashed values into it.
+       */
+      if (this.report.template) {
+        stripHashedValues(this.report);
+      }
+
       return this as ProjectManager;
     },
 
@@ -204,14 +415,47 @@ function getProjectManager(report: ProjectReport, database: JsonDB): ProjectMana
 
     elements: getProjectElementManager(MANAGER.groups),
 
+    /**
+     * Converts the current project into a template.
+     *
+     * Hashed values are removed immediately.
+     */
+    makeTemplate(this: ProjectManager) {
+      stripHashedValues(this.report);
+
+      this.report.template = true;
+
+      /*
+       * Persist the change immediately.
+       */
+      void this.database.push(`/${this.report.path}`, stripFunctions(this.report), true);
+
+      return this;
+    },
+
     patch(data: Partial<ProjectReport>) {
+      /*
+       * A caller cannot use patch() to bypass the template rules.
+       */
       Object.assign(report, stripFunctions(data));
+
+      if (report.template) {
+        stripHashedValues(report);
+      }
+
       return this as ProjectManager;
     },
 
-    // Remove existing functions (or other ProjectManager functions)
+    /*
+     * Remove existing functions (or other ProjectManager functions).
+     */
     replace(self: ProjectReport) {
       Object.assign(report, stripFunctions(self));
+
+      if (report.template) {
+        stripHashedValues(report);
+      }
+
       return this as ProjectManager;
     },
   } satisfies Omit<ProjectManager, 'report' | 'groups' | 'database'>);
@@ -232,7 +476,10 @@ function getProjectElementManager(groups: GroupManager): ProjectElementManager {
     move(this: ProjectElementManager, action) {
       const manager = this.groups.getElements(action.fromGroupId);
       const element = manager?.delete(action.elementId);
-      if (element) manager?.put(element, action.index);
+
+      if (element) {
+        manager?.put(element, action.index);
+      }
     },
 
     update(this: ProjectElementManager, action) {
@@ -264,7 +511,10 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
           }),
         ) as ProjectGroupDef;
 
-        const group = Object.assign(groupDef, { elements: [], identifier: createIdentifier() });
+        const group = Object.assign(groupDef, {
+          elements: [],
+          identifier: createIdentifier(),
+        });
 
         this.put(group);
 
@@ -278,12 +528,15 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
       },
 
       delete(action) {
-        // Recusively remove sub-groups
+        // Recursively remove sub-groups
         this.getAll()
           .filter(({ parentId }) => parentId === action.groupId)
           .map(
             ({ identifier: groupId }) =>
-              ({ groupId, type: 'group:delete' }) satisfies ProjectActionType<'group:delete'>,
+              ({
+                groupId,
+                type: 'group:delete',
+              }) satisfies ProjectActionType<'group:delete'>,
           )
           .forEach(this.delete);
 
@@ -302,6 +555,7 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
 
       getCollection(this: GroupManager) {
         this.report.groups ??= [];
+
         return this.report.groups;
       },
 
@@ -345,6 +599,7 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
             const lastChildIndex = lastInHierarchy ? collection.indexOf(lastInHierarchy) : -1;
 
             const insertIndex = lastChildIndex + lastChildIndex / Math.abs(lastChildIndex || 1);
+
             this.put(group, insertIndex >= 0 ? insertIndex : undefined);
 
             // Make sure the parents are the same
@@ -359,16 +614,24 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
 
       popById(this: GroupManager, groupId: string) {
         const collection = this.getCollection();
+
         const index = collection.findIndex(({ identifier }) => identifier === groupId);
-        return collection.splice(index, 1)[0];
+
+        return index >= 0 ? collection.splice(index, 1)[0] : undefined;
       },
 
       resolveHighestParent(this: GroupManager, child) {
         let target: ProjectGroup = child;
         const groups = this.getAll();
 
-        while (target.parentId != null)
-          target = groups.find(({ identifier }) => identifier === target.parentId)!;
+        while (target.parentId != null) {
+          const parent = groups.find(({ identifier }) => identifier === target.parentId);
+
+          if (!parent) break;
+
+          target = parent;
+        }
+
         return target !== child ? target : undefined;
       },
 
@@ -377,7 +640,11 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
 
         while (true) {
           const next = this.getChildren(child).at(-1);
-          if (!next) return parent !== child ? child : undefined;
+
+          if (!next) {
+            return parent !== child ? child : undefined;
+          }
+
           child = next;
         }
       },
@@ -385,6 +652,7 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
       resolveNextSibling(this: GroupManager, child) {
         const groups = this.getAll();
         const afterIndex = groups.indexOf(child);
+
         return groups.find(
           ({ parentId }, index) => index > afterIndex && parentId === child.parentId,
         );
@@ -392,6 +660,7 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
 
       setParent(this: GroupManager, child, parent) {
         const groups = this.getAll();
+
         const hasChild = groups.includes(child);
         const hasParent = parent && groups.includes(parent);
 
@@ -402,21 +671,24 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
 
         if (hasParent) {
           const insertIndex = groups.indexOf(parent);
+
           this.put(child, insertIndex + 1);
 
           // GroupManager.put() might have given a different
-          // parent, let's ensure the parent is correct
+          // parent, let's ensure the parent is correct.
           child.parentId = parent?.identifier;
         } else if (!parent && child.parentId) {
-          // The child might already be an orphan
+          // The child might already be an orphan.
           const highestParent = this.resolveHighestParent(child);
 
           if (highestParent) {
-            // The child has a parent, remove it
+            // The child has a parent, remove it.
             const lastInHierarchy = this.resolveLastInHierarchy(highestParent);
+
             const lastChildIndex = lastInHierarchy ? groups.indexOf(lastInHierarchy) : -1;
 
             const insertIndex = lastChildIndex + lastChildIndex / Math.abs(lastChildIndex || 1);
+
             this.put(child, insertIndex >= 0 ? insertIndex : undefined);
 
             // GroupManager.put() didn't give a parent,
@@ -436,9 +708,10 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
         const includes = collection.includes(element);
 
         // Use length if index is not provided,
-        // also keep within length of collection
+        // also keep within length of collection.
         let target = (((index ?? length) % length) + length) % length;
-        // We will get NaN if length is 0
+
+        // We will get NaN if length is 0.
         if (length === 0) target = 0;
 
         if (includes) {
@@ -446,6 +719,7 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
 
           if (selfIndex === target) return;
           else if (selfIndex < target) target--;
+
           collection.splice(selfIndex, 1);
         }
 
@@ -455,7 +729,16 @@ function getGroupManager(project: ProjectManager, report: ProjectReport): GroupM
           // We know if the child after has a parent,
           // then this element needs to have a parent.
           element.parentId = collection.at(target + 1)?.parentId;
-        } else collection.push(element);
+        } else {
+          collection.push(element);
+        }
+
+        /*
+         * A template must never retain hashed values.
+         */
+        if (this.report.template) {
+          stripHashedValues(element);
+        }
       },
     } satisfies Pick<GroupManager, 'put'>,
   );
@@ -467,6 +750,7 @@ function getElementManager(
   groupId: string,
 ): ElementManager | undefined {
   const group = report.groups?.find(({ identifier }) => identifier === groupId);
+
   if (!group) return;
 
   const MANAGER: Pick<ElementManager, 'project' | 'report' | 'group' | 'database'> = {
@@ -478,11 +762,16 @@ function getElementManager(
 
   return Object.assign(MANAGER, {
     create(partial, index) {
+      const data = report.template ? stripHashedClone(partial) : partial;
+
       const element: ProjectElement = Object.assign(
-        { identifier: createIdentifier() },
-        partial,
+        {
+          identifier: createIdentifier(),
+        },
+        data,
       ) as ProjectElement;
 
+      element.identifier = createIdentifier();
       this.put(element, index);
       return element;
     },
@@ -498,12 +787,21 @@ function getElementManager(
       return this.group.elements;
     },
 
-    update(elementId, data) {
+    update(this: ElementManager, elementId, data) {
       const collection = this.getCollection();
       const element = collection.find(({ identifier }) => identifier === elementId);
-      return element ? Object.assign(element, data) : undefined;
+      if (!element) return undefined;
+
+      if (this.report.template) data = stripHashedClone(data);
+      return Object.assign(element, data);
     },
 
     ...ReorderManagerDefaults(),
   } satisfies Omit<ElementManager, 'project' | 'report' | 'group' | 'database'>);
+}
+
+function stripHashedClone<T>(value: T): T {
+  const clone = structuredClone(value);
+  stripHashedValues(clone);
+  return clone;
 }

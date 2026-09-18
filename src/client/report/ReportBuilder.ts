@@ -44,6 +44,10 @@ export class ReportBuilder extends EventTarget {
     return this.project!;
   }
 
+  public getLayoutManager() {
+    return this.layout;
+  }
+
   public override addEventListener<K extends keyof ReportBuilderEvents>(
     type: K,
     listener: (event: ReportBuilderEvents[K]['event']) => void,

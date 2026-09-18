@@ -255,8 +255,9 @@ export class CommandPalette {
     let action = this.currentActions.find((action) => action.element === element);
     if (!action) return;
 
-    if (action.tab && action.tab.length > 0) {
-      this.pushTab(action.tab, '', action);
+    const tab = action.tab ?? [];
+    if (tab.length > 0) {
+      this.pushTab(tab, '', action);
       return false;
     }
 
@@ -362,7 +363,9 @@ export class CommandPalette {
     const query: string = this.input.value.trim();
 
     const matches = new Set(
-      !query ? this.currentActions : fuse.search(query).map((result: any) => result.item),
+      !query
+        ? this.currentActions
+        : fuse.search(query).map((result: any) => result.item as CommandAction),
     );
 
     this.currentActions.forEach((action) => {
