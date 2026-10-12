@@ -6,7 +6,7 @@
     "liquidjs": "^10.27.1",
     "mongoose": "^9.7.2",
     "node-json-db": "^2.6.0",
-    "socket.io": "^4.8.3",
+    "socket.io": "^4.8.4",
     "socket.io-client": "^4.8.3",
     "ua-parser-js": "^2.0.10",
     "url": "^0.11.4"
