@@ -1,46 +1,187 @@
-import { CommandPalette } from 'client/development/commands.ts';
+import { type Command, CommandExecutor, CommandRegistry } from '@sebastian-sereno/command-palette';
 import { RPCClient } from 'client/development/rpc-client.ts';
 import type { ReportBuilder } from 'client/report/ReportBuilder.ts';
-import type { CommandActionVisibility, CommandType } from 'common/commands/types.ts';
 import type { DatabaseProjectTreeFile } from 'common/database/types.ts';
 import { io } from 'socket.io-client';
 
-// Make the command palette
-const commandPalette = new CommandPalette({
-  input: document.querySelector('#cmd-search')!,
-  macos: (window as any).macos as boolean,
-  overlay: document.querySelector('#cmd-palette .cmd-list')!,
+// -----------------------------------------------------------------------------
+// Command execution and UI
+// -----------------------------------------------------------------------------
+
+const input = document.querySelector<HTMLInputElement>('#cmd-search')!;
+const commandList = document.querySelector<HTMLElement>('#cmd-palette .cmd-list')!;
+
+const registry = new CommandRegistry();
+const executor = new CommandExecutor(registry, {
+  enabled: true,
+  maxEntries: 100,
 });
 
-// Handle socket connections
 const status = new RPCClient(io());
 const rpc = status.rpc;
 
-const element = commandPalette.addAction(
-  {
-    callback: () => status.connection.reconnect(),
-    closes: false,
-    description: 'Restart Socket',
-    icon: 'cloud-off',
-    label: 'Socket Status',
-  },
-  false,
+let socketConnected = false;
+let activeIndex = 0;
+
+function registerCommand(command: Command) {
+  registry.registerCommand(command);
+}
+
+function createCommand(
+  overrides: Partial<Command> & Pick<Command, 'id' | 'title' | 'execute'>,
+): Command {
+  return {
+    category: [],
+    description: '',
+    keywords: [],
+    shortcut: '',
+    ...overrides,
+  };
+}
+
+function renderCommands() {
+  const query = input.value.trim();
+  const results = executor.search.query(query, { limit: 50 });
+
+  commandList.replaceChildren();
+  activeIndex = Math.min(activeIndex, Math.max(0, results.length - 1));
+
+  results.forEach((result, index) => {
+    const command = result.command;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cmd-item';
+
+    if (index === activeIndex) {
+      button.classList.add('active');
+    }
+
+    const title = document.createElement('span');
+    title.className = 'label';
+    title.textContent = command.title;
+
+    const description = document.createElement('span');
+    description.className = 'description';
+    description.textContent = command.description;
+
+    button.append(title, description);
+
+    button.addEventListener('mouseenter', () => {
+      activeIndex = index;
+      updateActiveItem();
+    });
+
+    button.addEventListener('click', () => {
+      void runCommand(command.id);
+    });
+
+    commandList.append(button);
+  });
+}
+
+function updateActiveItem() {
+  const items = commandList.querySelectorAll<HTMLElement>('.cmd-item');
+
+  items.forEach((item, index) => {
+    item.classList.toggle('active', index === activeIndex);
+  });
+}
+
+async function runCommand(id: string) {
+  const result = await executor.execute(id, {});
+
+  if (!result.success && !result.cancelled) {
+    console.error(`Command "${id}" failed:`, result.error);
+  }
+
+  renderCommands();
+}
+
+input.addEventListener('input', () => {
+  activeIndex = 0;
+  renderCommands();
+});
+
+input.addEventListener('keydown', (event: KeyboardEvent) => {
+  const items = commandList.querySelectorAll('.cmd-item');
+
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, items.length - 1);
+      updateActiveItem();
+      break;
+
+    case 'ArrowUp':
+      event.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      updateActiveItem();
+      break;
+
+    case 'Enter': {
+      event.preventDefault();
+      const item = items[activeIndex] as HTMLElement | undefined;
+      item?.click();
+      break;
+    }
+
+    case 'Escape':
+      input.value = '';
+      activeIndex = 0;
+      renderCommands();
+      break;
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Socket status
+// -----------------------------------------------------------------------------
+
+registerCommand(
+  createCommand({
+    category: ['system', 'connection'],
+    description: 'Check the connection or reconnect to the server',
+    execute: () => status.connection.reconnect(),
+    id: 'socket-reconnect',
+    keywords: ['socket', 'reconnect', 'connection', 'server', 'status'],
+    title: 'Socket Status',
+  }),
 );
 
-const label = element.querySelector('.label') as HTMLElement;
-const classes = element.querySelector('.icon')!.classList;
-
 status.connection.onConnect(() => {
-  classes.replace('icon-cloud-off', 'icon-cloud-check');
-  label.innerText = 'Socket Connected';
+  socketConnected = true;
+  updateSocketCommand();
 });
 
 status.connection.onDisconnect(() => {
-  classes.replace('icon-cloud-check', 'icon-cloud-off');
-  label.innerText = 'Socket Disconnected';
+  socketConnected = false;
+  updateSocketCommand();
 });
 
-// TYPES
+function updateSocketCommand() {
+  const description = socketConnected
+    ? 'Socket Connected — select to reconnect'
+    : 'Socket Disconnected — select to reconnect';
+
+  // Register a separate status command so the command registry's
+  // registration API remains the only command-management interface.
+  //
+  // The socket-reconnect command itself always performs the reconnect.
+  // Update the visible status independently of the command definition.
+  const statusElement = commandList.querySelector<HTMLElement>(
+    '[data-command-id="socket-reconnect"] .description',
+  );
+
+  if (statusElement) {
+    statusElement.textContent = description;
+  }
+
+  renderCommands();
+}
+
+// -----------------------------------------------------------------------------
+// Report file commands
+// -----------------------------------------------------------------------------
 
 type FileGroupKey = 'frame' | 'image' | 'table';
 
@@ -53,21 +194,21 @@ type FileGroupConfig = {
 
 const FILE_GROUPS: Record<FileGroupKey, FileGroupConfig> = {
   frame: {
-    description: 'Choose from Database',
+    description: 'Choose an interactive page from the database',
     icon: 'panels-top-left',
     label: 'Add Interactive Page',
     types: ['html', 'pdf'],
   },
 
   image: {
-    description: 'Choose from Database',
+    description: 'Choose an image from the database',
     icon: 'image',
     label: 'Add Image',
     types: ['png', 'svg', 'jpeg', 'jpg', 'tiff', 'tif'],
   },
 
   table: {
-    description: 'Choose from Database',
+    description: 'Choose a table from the database',
     icon: 'table',
     label: 'Add Table',
     types: ['csv'],
@@ -89,16 +230,17 @@ function createFolder(): FolderNode {
 function addFileToTree(root: FolderNode, file: DatabaseProjectTreeFile) {
   const parts = file.path.split('/').filter(Boolean);
   const name = parts.pop();
+
   if (!name) return;
 
   let current = root;
 
-  for (const folder of parts) {
-    let next = current.folders.get(folder);
+  for (const folderName of parts) {
+    let next = current.folders.get(folderName);
 
     if (!next) {
       next = createFolder();
-      current.folders.set(folder, next);
+      current.folders.set(folderName, next);
     }
 
     current = next;
@@ -110,119 +252,61 @@ function addFileToTree(root: FolderNode, file: DatabaseProjectTreeFile) {
   });
 }
 
-function collectDescendantFiles(
+function registerFileCommands(
   node: FolderNode,
-  path: string[] = [],
-): Array<{
-  file: DatabaseProjectTreeFile;
-  path: string[];
-}> {
-  const files: Array<{
-    file: DatabaseProjectTreeFile;
-    path: string[];
-  }> = [];
+  group: FileGroupKey,
+  config: FileGroupConfig,
+  report: ReportBuilder,
+  folders: string[] = [],
+) {
+  const folderNames = [...folders];
 
-  for (const file of node.files) {
-    files.push({
-      file,
-      path,
-    });
-  }
+  for (const file of [...node.files].sort((a, b) => a.name.localeCompare(b.name))) {
+    const fileId = String(file.id);
+    const fileType = file.type.toLowerCase();
+    const filePath = [...folderNames, file.name].join('/');
+    const commandId = `report-file:${group}:${fileId}`;
 
-  for (const [name, folder] of node.folders) {
-    files.push(...collectDescendantFiles(folder, [...path, name]));
-  }
+    registerCommand(
+      createCommand({
+        category: ['report', group, ...folderNames],
+        description: `${config.description} · ${filePath}`,
+        execute: () => {
+          // Connect the existing report insertion logic here when its
+          // pending-element API is available.
+          //
+          // Example:
+          // report.getPendingInsertManager().beginPendingElement({
+          //   type: group,
+          //   data: { file: file.id, type: file.type },
+          // });
 
-  return files;
-}
+          report.getLayoutManager();
 
-function buildFolderCommand(
-  node: FolderNode,
-  options: {
-    label: string;
-    description: string;
-    icon?: string;
-    visibility?: CommandActionVisibility;
-    callback?: (value: unknown) => void;
-    path?: string[];
-  },
-): CommandType {
-  const children: CommandType[] = [];
-
-  // Keep the normal folder hierarchy for navigation.
-  for (const [name, folder] of [...node.folders.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    children.push(
-      buildFolderCommand(folder, {
-        callback: options.callback,
-        description: options.description,
-        icon: 'folder',
-        label: name,
-        path: [...(options.path ?? []), name],
-        visibility: 'shown',
+          return {
+            file: fileId,
+            group,
+            type: fileType,
+          };
+        },
+        id: commandId,
+        keywords: [config.label, group, file.name, fileType, ...folderNames, filePath],
+        title: file.name,
       }),
     );
   }
 
-  // Direct files in this folder.
-  for (const file of [...node.files].sort((a, b) => a.name.localeCompare(b.name))) {
-    children.push({
-      callback: options.callback,
-      description: options.description,
-      label: file.name,
-      truncate: 'start',
-      value: {
-        id: file.id,
-        type: file.type,
-      },
-      visibility: 'shown',
-    });
+  const sortedFolders = [...node.folders.entries()].sort(([a], [b]) => a.localeCompare(b));
+
+  for (const [name, folder] of sortedFolders) {
+    registerFileCommands(folder, group, config, report, [...folderNames, name]);
   }
-
-  // Also expose ALL descendant files to the current folder's search.
-  //
-  // These are searchable but aren't additional visible navigation items.
-  const descendantFiles = collectDescendantFiles(node);
-
-  for (const { file, path } of descendantFiles) {
-    // Don't duplicate files that were already added above.
-    if (path.length === 0) continue;
-
-    children.push({
-      callback: options.callback,
-      description: path.join(' / '),
-      label: file.name,
-      truncate: 'start',
-      value: {
-        id: file.id,
-        type: file.type,
-      },
-      visibility: 'searchable',
-    });
-  }
-
-  return {
-    callback: options.callback,
-    description: options.description,
-    icon: options.icon,
-    label: options.label,
-    tab: children,
-    visibility: options.visibility ?? 'shown',
-  };
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  addReportActions((window as any).report);
-  addGeneralActions();
-  addEventListeners((window as any).report);
-});
+async function addReportActions(report: ReportBuilder) {
+  if (!report) return;
 
-async function addReportActions(REPORT: ReportBuilder) {
-  if (!REPORT) return;
-
-  // const groupManager = REPORT.getGroupManager();
-  // const insertManager = REPORT.getPendingInsertManager();
-  const files = await rpc.db.files(REPORT.getProjectPath());
-
+  const files = await rpc.db.files(report.getProjectPath());
   const lookup = new Map<string, FileGroupKey>();
 
   for (const [key, group] of Object.entries(FILE_GROUPS)) {
@@ -234,112 +318,93 @@ async function addReportActions(REPORT: ReportBuilder) {
   const roots = new Map<FileGroupKey, FolderNode>();
 
   for (const file of files) {
-    const type = file.type.toLowerCase();
-    const group = lookup.get(type);
-
+    const group = lookup.get(file.type.toLowerCase());
     if (!group) continue;
-    if (!roots.has(group)) {
-      roots.set(group, createFolder());
-    }
+    if (!roots.has(group)) roots.set(group, createFolder());
 
-    addFileToTree(roots.get(group)!, {
-      ...file,
-      name: file.path.split('/').at(-1) ?? 'Unknown File',
-    });
+    const fileName = file.path.substring(file.path.lastIndexOf('/'));
+    addFileToTree(roots.get(group)!, { ...file, name: fileName });
   }
 
   for (const [key, root] of roots) {
-    const config = FILE_GROUPS[key];
-
-    const action = buildFolderCommand(root, {
-      callback(value) {
-        const file = value as {
-          id: string;
-          type: string;
-        };
-
-        REPORT.getLayoutManager();
-
-        // REPORT..beginPendingElement({
-        //   data: {
-        //     file: file.id,
-        //     type: file.type,
-        //   },
-        //   type: key,
-        // });
-      },
-
-      description: config.description,
-
-      icon: config.icon,
-      label: config.label,
-    });
-
-    commandPalette.addAction({
-      ...action,
-      callback: action.callback,
-      closes: true,
-    });
+    registerFileCommands(root, key, FILE_GROUPS[key], report);
   }
 
-  commandPalette.addAction({
-    callback() {
-      // insertManager.beginPendingElement({
-      //   type: 'description',
-      //   data: {},
-      // });
-    },
-    icon: 'list-plus',
-    label: 'Add Text Field',
-  });
+  registerCommand(
+    createCommand({
+      category: ['report', 'edit'],
+      description: 'Add a text field to the report',
+      execute: () => {
+        // Connect the pending-element insertion API here.
+      },
+      id: 'report-add-text',
+      keywords: ['text', 'field', 'description', 'insert'],
+      title: 'Add Text Field',
+    }),
+  );
 
-  commandPalette.addAction({
-    callback() {
-      // groupManager.create({
-      //   elements: [],
-      //   title: 'New Group',
-      // });
-    },
-    icon: 'group',
-    label: 'Add Group',
-  });
+  registerCommand(
+    createCommand({
+      category: ['report', 'edit'],
+      description: 'Create a new group in the report',
+      execute: () => {
+        // Connect the group manager API here.
+      },
+      id: 'report-add-group',
+      keywords: ['group', 'new', 'create'],
+      title: 'Add Group',
+    }),
+  );
 }
+
+// -----------------------------------------------------------------------------
+// General project commands
+// -----------------------------------------------------------------------------
 
 async function addGeneralActions() {
   const projects = await rpc.projects.get();
   const projectIds = await rpc.db.projects();
+
   const ids = Array.isArray(projectIds) ? projectIds : [projectIds];
   const locals = Array.isArray(projects) ? projects : [projects];
 
-  commandPalette.addAction({
-    callback(value) {
-      globalThis.location.pathname = value as string;
-    },
-    icon: 'arrow-left-right',
-    label: 'Switch Project',
-    tab: locals.map(({ title, path }) => ({
-      description: 'Switch project',
-      label: title,
-      value: path,
-    })),
-  });
+  for (const project of locals) {
+    registerCommand(
+      createCommand({
+        category: ['project', 'navigation'],
+        description: `Open project ${project.title}`,
+        execute: () => {
+          globalThis.location.pathname = project.path;
+        },
+        id: `switch-project:${project.path}`,
+        keywords: ['switch', 'project', project.title, project.path],
+        title: `Switch Project: ${project.title}`,
+      }),
+    );
+  }
 
-  if (!(window as any).report) {
-    commandPalette.addAction({
-      callback: async (value) => {
-        const result = await rpc.projects.create(value);
-        globalThis.location.pathname = result.path;
-      },
-      icon: 'layers-plus',
-      label: 'Create Project',
-      tab: ids.map(({ id, path }) => ({
-        description: 'Create Project',
-        label: path,
-        value: id,
-      })),
-    });
+  if (!(window as { report?: ReportBuilder }).report) {
+    for (const project of ids) {
+      registerCommand(
+        createCommand({
+          category: ['project', 'create'],
+          description: 'Create a project',
+          execute: async () => {
+            const result = await rpc.projects.create(project.id);
+            globalThis.location.pathname = result.path;
+          },
+          id: `create-project:${project.id}`,
+          keywords: ['create', 'new', 'project', project.path],
+          title: `Create Project: ${project.path}`,
+        }),
+      );
+    }
   }
 }
+
+// -----------------------------------------------------------------------------
+// Report event synchronization
+// -----------------------------------------------------------------------------
 
 function addEventListeners(report: ReportBuilder) {
   if (!report) return;
@@ -348,7 +413,6 @@ function addEventListeners(report: ReportBuilder) {
     'group:create',
     'group:move',
     'group:delete',
-
     'element:create',
     'element:move',
     'element:update',
@@ -356,19 +420,36 @@ function addEventListeners(report: ReportBuilder) {
   ] as const;
 
   for (const type of events) {
-    report.addEventListener(
-      type,
+    report.addEventListener(type, (event: Event) => {
+      const customEvent = event as CustomEvent;
 
-      (event: Event) => {
-        const e = event as CustomEvent;
+      void rpc.project.edit(report.getProjectPath(), {
+        ...customEvent.detail,
+        type,
+      });
 
-        rpc.project.edit(report.getProjectPath(), {
-          ...e.detail,
-          type,
-        });
-
-        console.log(type, e.detail);
-      },
-    );
+      console.log(type, customEvent.detail);
+    });
   }
 }
+
+// -----------------------------------------------------------------------------
+// Initialization
+// -----------------------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const report = (window as { report?: ReportBuilder }).report;
+
+  try {
+    await addGeneralActions();
+
+    if (report) {
+      await addReportActions(report);
+      addEventListeners(report);
+    }
+
+    renderCommands();
+  } catch (error) {
+    console.error('Failed to initialize commands:', error);
+  }
+});
