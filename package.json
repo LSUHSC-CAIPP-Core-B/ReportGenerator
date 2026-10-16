@@ -25,6 +25,9 @@
     }
   },
   "dependencies": {
+    "@sebastian-sereno/command-palette": "^1.0.0",
+    "@sebastian-sereno/emmet-dom-reconciler": "^1.0.0",
+    "@sebastian-sereno/emmet-optimizer": "^1.0.0",
     "@types/archiver": "^8.0.0",
     "archiver": "^8.0.0",
     "cheerio": "^1.2.0",

@@ -583,6 +583,21 @@
   dependencies:
     sparse-bitfield "^3.0.3"
 
+"@sebastian-sereno/command-palette@^1.0.0":
+  version "1.0.0"
+  resolved "https://npm.pkg.github.com/download/@sebastian-sereno/command-palette/1.0.0/f4a03f16244320bb5acf184ebccc8e0c39c1cc13#f4a03f16244320bb5acf184ebccc8e0c39c1cc13"
+  integrity sha512-KmwBBBc5yIPW+duGMJCfTter4aQOSVWtR0Hef4LKKx1lL2LZrj/BwKjnWq5NjnfZP40WhtK2k+8UieBTvAyYPw==
+
+"@sebastian-sereno/emmet-dom-reconciler@^1.0.0":
+  version "1.0.0"
+  resolved "https://npm.pkg.github.com/download/@sebastian-sereno/emmet-dom-reconciler/1.0.0/28f23b3df6ea87fbee4bb605591f46cc96b795c0#28f23b3df6ea87fbee4bb605591f46cc96b795c0"
+  integrity sha512-1C4WpT5z+o7Wz6hZ7BLXbDWL3xf+3fQGLpN9elxgv+kCheormMufctdPSVOHEdZYNYwzPJ+MIYhjlwOzmIbh0g==
+
+"@sebastian-sereno/emmet-optimizer@^1.0.0":
+  version "1.0.0"
+  resolved "https://npm.pkg.github.com/download/@sebastian-sereno/emmet-optimizer/1.0.0/8b1af5fc1fd7463721e671212e0d1fe64587a9c4#8b1af5fc1fd7463721e671212e0d1fe64587a9c4"
+  integrity sha512-9E1z/eTR++HfWHU3ZlOO8mDoBhZsMugHmV6cZzwfH7ymdCaNqS1kBoODl5s0FayYUJNit1VyNXDXGscaQiyqLQ==
+
 "@simple-libs/child-process-utils@^1.0.0":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@simple-libs/child-process-utils/-/child-process-utils-1.0.2.tgz#cb182d310c9bed3ace200b26258e090d898a1736"
