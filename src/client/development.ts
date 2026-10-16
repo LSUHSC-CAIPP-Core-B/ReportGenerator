@@ -262,38 +262,40 @@ function registerFileCommands(
   const folderNames = [...folders];
 
   for (const file of [...node.files].sort((a, b) => a.name.localeCompare(b.name))) {
-    const fileId = String(file.id);
+    const fileId = String(file.hash);
     const fileType = file.type.toLowerCase();
     const filePath = [...folderNames, file.name].join('/');
     const commandId = `report-file:${group}:${fileId}`;
 
-    registerCommand(
-      createCommand({
-        category: ['report', group, ...folderNames],
-        description: `${config.description} · ${filePath}`,
-        execute: () => {
-          // Connect the existing report insertion logic here when its
-          // pending-element API is available.
-          //
-          // Example:
-          // report.getPendingInsertManager().beginPendingElement({
-          //   type: group,
-          //   data: { file: file.id, type: file.type },
-          // });
+    try {
+      registerCommand(
+        createCommand({
+          category: ['report', group, ...folderNames],
+          description: `${config.description} · ${filePath}`,
+          execute: () => {
+            // Connect the existing report insertion logic here when its
+            // pending-element API is available.
+            //
+            // Example:
+            // report.getPendingInsertManager().beginPendingElement({
+            //   type: group,
+            //   data: { file: file.id, type: file.type },
+            // });
 
-          report.getLayoutManager();
+            report.getLayoutManager();
 
-          return {
-            file: fileId,
-            group,
-            type: fileType,
-          };
-        },
-        id: commandId,
-        keywords: [config.label, group, file.name, fileType, ...folderNames, filePath],
-        title: file.name,
-      }),
-    );
+            return {
+              file: fileId,
+              group,
+              type: fileType,
+            };
+          },
+          id: commandId,
+          keywords: [config.label, group, file.name, fileType, ...folderNames, filePath],
+          title: file.name,
+        }),
+      );
+    } catch (ignored) {}
   }
 
   const sortedFolders = [...node.folders.entries()].sort(([a], [b]) => a.localeCompare(b));

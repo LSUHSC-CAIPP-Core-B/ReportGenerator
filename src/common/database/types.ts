@@ -1,5 +1,5 @@
 export type DatabaseFile = {
-  id: string;
+  hash: string;
   path: string;
   type: string;
 };
